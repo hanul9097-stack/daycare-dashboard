@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>호남본부 업무 대시보드</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: #f0f2f7; color: #1a1a2e; min-height: 100vh; }
+
+    .header { background: #fff; border-bottom: 1px solid #e8e8e8; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    .header h1 { font-size: 19px; font-weight: 700; }
+    .header-sub { font-size: 13px; color: #888; margin-top: 3px; }
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .refresh-time { font-size: 12px; color: #aaa; }
+    .refresh-btn { background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .2s; }
+    .refresh-btn:hover { background: #1b5e20; }
+    .refresh-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .spin { display: inline-block; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .main { max-width: 1440px; margin: 0 auto; padding: 24px 28px; }
+    .top-section { display: grid; grid-template-columns: 1fr 340px; gap: 16px; margin-bottom: 20px; align-items: stretch; }
+
+    .summary-left { display: flex; flex-direction: column; gap: 12px; }
+    .summary-card { background: #fff; border-radius: 14px; padding: 16px 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 18px; flex: 1; }
+    .summary-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 21px; flex-shrink: 0; }
+    .ic-blue   { background: #eef0ff; }
+    .ic-green  { background: #e8f5e9; }
+    .ic-red    { background: #fff0f0; }
+    .ic-purple { background: #f3e5f5; }
+    .summary-value { font-size: 24px; font-weight: 700; line-height: 1; }
+    .summary-label { font-size: 12px; color: #888; margin-top: 4px; }
+
+    .center-panel { background: #fff; border-radius: 14px; padding: 20px 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+    .center-panel-title { font-size: 13px; font-weight: 700; color: #333; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
+    .center-panel-month { font-size: 12px; font-weight: 600; color: #2e7d32; background: #e8f5e9; border-radius: 6px; padding: 2px 8px; }
+    .center-list { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center; overflow-y: auto; }
+    .center-row { display: flex; align-items: center; gap: 10px; cursor: pointer; border-radius: 7px; padding: 3px 5px; margin: -3px -5px; transition: background .15s; }
+    .center-row:hover { background: #e8f5e9; }
+    .center-name { font-size: 12px; font-weight: 600; color: #444; width: 100px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .center-bar-wrap { flex: 1; height: 6px; background: #f0f2f7; border-radius: 3px; overflow: hidden; }
+    .center-bar { height: 100%; background: linear-gradient(90deg, #2e7d32, #66bb6a); border-radius: 3px; transition: width .4s ease; }
+    .center-count { font-size: 12px; font-weight: 700; color: #2e7d32; width: 28px; text-align: right; flex-shrink: 0; }
+    .center-total { margin-top: 12px; padding-top: 10px; border-top: 1px solid #f0f0f0; font-size: 12px; color: #888; text-align: right; }
+    .center-total strong { color: #333; }
+    .center-detail-back { font-size: 11px; color: #2e7d32; cursor: pointer; padding-bottom: 8px; font-weight: 600; display: inline-block; }
+    .center-detail-back:hover { text-decoration: underline; }
+    .center-detail-title { font-size: 12px; font-weight: 700; color: #333; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; margin-bottom: 8px; }
+    .center-detail-list { display: flex; flex-direction: column; gap: 6px; }
+    .center-detail-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; background: #f7f8fc; border-radius: 7px; }
+    .center-detail-name { font-size: 12px; font-weight: 600; color: #444; }
+    .center-detail-hours { font-size: 12px; font-weight: 700; color: #2e7d32; }
+
+    .tab-bar { display: flex; gap: 4px; background: #fff; border-radius: 14px; padding: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; position: sticky; top: 70px; z-index: 90; }
+    .tab-btn { flex: 1; padding: 11px 12px; border: none; background: transparent; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; color: #888; transition: all .2s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+    .tab-btn:hover { background: #f0f2f7; color: #444; }
+    .tab-btn.active { background: #2e7d32; color: #fff; box-shadow: 0 2px 8px rgba(46,125,50,.3); }
+    .tab-cnt { display: inline-block; background: rgba(255,255,255,.25); border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 700; min-width: 20px; text-align: center; }
+    .tab-btn:not(.active) .tab-cnt { background: #e8f5e9; color: #2e7d32; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .section-title { font-size: 15px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 8px; }
+    .count-badge { background: #2e7d32; color: #fff; font-size: 11px; border-radius: 20px; padding: 2px 9px; font-weight: 600; }
+
+    .members-grid { display: flex; flex-direction: column; gap: 16px; }
+    .pair-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .member-card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1.5px solid transparent; transition: box-shadow .2s, border-color .2s; }
+    .member-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+    .member-card.has-overtime { border-color: #ff6b6b; }
+    .member-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
+    .member-name-wrap { display: flex; align-items: center; gap: 10px; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #2e7d32, #66bb6a); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .member-name { font-size: 15px; font-weight: 600; }
+    .ot-badge { background: #fff0f0; color: #e63946; font-size: 11px; font-weight: 600; border-radius: 6px; padding: 3px 8px; white-space: nowrap; }
+    .work-days { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .work-day-label { font-size: 11px; font-weight: 700; color: #aaa; letter-spacing: .3px; margin-bottom: 4px; display: block; }
+    .work-day-label.today { color: #2e7d32; }
+    .work-box { font-size: 13px; color: #444; line-height: 1.65; background: #f7f8fc; border-radius: 8px; padding: 10px 13px; min-height: 48px; white-space: pre-wrap; word-break: break-word; }
+    .work-box.empty { color: #bbb; font-style: italic; min-height: 36px; }
+    .work-box.tomorrow { background: #f1f8f1; }
+
+    .recruit-section { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .recruit-table-wrap { overflow-x: auto; margin-top: 4px; }
+    .recruit-group-label { font-size: 13px; font-weight: 700; padding: 12px 4px 8px; border-bottom: 2px solid #f0f0f0; margin-bottom: 4px; margin-top: 20px; display: flex; align-items: center; gap: 6px; }
+    .recruit-group-label:first-child { margin-top: 0; }
+    .recruit-group-label.active { color: #2e7d32; border-bottom-color: #e8f5e9; }
+    .recruit-group-cnt { font-size: 11px; font-weight: 400; color: #aaa; margin-left: 4px; }
+    .recruit-overdue td { background: #fff8f2; }
+    .recruit-overdue td:first-child { border-left: 3px solid #ff8c00; padding-left: 11px; }
+    tbody tr.recruit-overdue:hover td { background: #ffe9d0; }
+    .recruit-contracted td { background: #f8f9ff; color: #999; }
+    .recruit-contracted td:first-child { border-left: 3px solid #9fa8da; padding-left: 11px; }
+    tbody tr.recruit-contracted:hover td { background: #eef0ff; }
+    .days-badge { display: inline-block; font-size: 10px; font-weight: 700; border-radius: 4px; padding: 1px 5px; margin-left: 5px; vertical-align: middle; }
+    .days-ok   { background: #e8f5e9; color: #2e7d32; }
+    .days-warn { background: #fff8e1; color: #e65100; }
+    .days-over { background: #fce4ec; color: #c62828; }
+    .rs-wait      { background: #fff8e1; color: #e65100; }
+    .rs-call      { background: #e3f2fd; color: #1565c0; }
+    .rs-search    { background: #f3e5f5; color: #6a1b9a; }
+    .rs-interview { background: #e8eaf6; color: #283593; }
+    .rs-complete  { background: #e8f5e9; color: #2e7d32; }
+    .rs-contracted { background: #e8eaf6; color: #283593; }
+    .rt-new { background: #e3f2fd; color: #0d47a1; }
+    .rt-re  { background: #fce4ec; color: #880e4f; }
+    .rt-emg { background: #fff3e0; color: #bf360c; }
+    .rt-cover { background: #e8f5e9; color: #1b5e20; }
+    .sms-badge { display:inline-flex; align-items:center; gap:3px; font-size:12px; font-weight:700; border-radius:6px; padding:3px 8px; background:#e8f5e9; color:#2e7d32; white-space:nowrap; }
+    .call-badge  { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 3px 8px; white-space: nowrap; }
+    .call-blue   { background: #e3f2fd; color: #1565c0; }
+    .call-loading { color: #ccc; font-size: 12px; }
+    .stars { display: inline-flex; align-items: center; gap: 1px; }
+    .stars.clickable { cursor: pointer; }
+    .stars.clickable:hover .star { opacity: .75; }
+    .star { font-size: 15px; color: #ddd; line-height: 1; user-select: none; }
+
+    /* 난이도 모달 */
+    .diff-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; display: none; align-items: center; justify-content: center; }
+    .diff-modal { background: #fff; border-radius: 14px; width: 400px; max-width: 92vw; box-shadow: 0 8px 32px rgba(0,0,0,.15); overflow: hidden; }
+    .diff-modal-hd { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; border-bottom: 1px solid #f0f0f0; }
+    .diff-modal-hd span { font-weight: 700; font-size: 15px; }
+    .diff-modal-hd button { background: none; border: none; font-size: 20px; cursor: pointer; color: #aaa; line-height: 1; }
+    .diff-modal-hd button:hover { color: #333; }
+    .diff-modal-bd { padding: 16px 20px 22px; }
+    .diff-stars-big { font-size: 24px; text-align: center; letter-spacing: 3px; padding: 10px 0 4px; }
+    .diff-pts { text-align: center; font-size: 12px; color: #888; margin-bottom: 14px; }
+    .diff-list { display: flex; flex-direction: column; gap: 5px; }
+    .diff-item { font-size: 13px; padding: 6px 12px; border-radius: 7px; }
+    .diff-item.pos { background: #fff8e1; color: #e65100; font-weight: 600; }
+    .diff-item.zero { background: #f7f8fc; color: #bbb; }
+
+    /* Slack — 채널 구분 */
+    .slack-section { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .slack-channel-block { margin-bottom: 28px; }
+    .slack-channel-block:last-child { margin-bottom: 0; }
+    .slack-channel-title { font-size: 13px; font-weight: 700; color: #fff; padding: 6px 14px; border-radius: 8px; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .slack-ch-leader  { background: #2e7d32; }
+    .slack-ch-manager { background: #1565c0; }
+    .todo-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .todo-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 10px; background: #f7f8fc; border-left: 3px solid #2e7d32; transition: background .15s; }
+    .todo-item:hover { background: #e8f5e9; }
+    .todo-item.manager { border-left-color: #1565c0; }
+    .todo-item.manager:hover { background: #e3f2fd; }
+    .todo-item.done { background: #f5f5f5; border-left-color: #aaa; opacity: 0.65; }
+    .todo-check { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+    .todo-body { flex: 1; min-width: 0; }
+    .todo-text { font-size: 13.5px; color: #222; line-height: 1.6; word-break: break-word; white-space: pre-wrap; }
+    .todo-item.done .todo-text { text-decoration: line-through; color: #999; }
+    .todo-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+    .todo-date { font-size: 11px; color: #aaa; }
+    .todo-thread { font-size: 11px; font-weight: 600; color: #2e7d32; background: #e8f5e9; border-radius: 10px; padding: 1px 8px; }
+    .slack-link { font-size: 11px; color: #2e7d32; text-decoration: none; border: 1px solid #a5d6a7; border-radius: 5px; padding: 1px 7px; margin-left: auto; white-space: nowrap; flex-shrink: 0; }
+    .slack-link:hover { background: #e8f5e9; }
+    .done-section { margin-top: 16px; border-top: 1px dashed #e0e0e0; padding-top: 12px; }
+    .done-section-title { font-size: 12px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: .5px; padding: 0 4px 10px; }
+    .done-month-section { margin-bottom: 6px; }
+    .done-section-header { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #888; cursor: pointer; padding: 7px 10px; border-radius: 8px; user-select: none; background: #fafafa; transition: background .15s; }
+    .done-section-header:hover { background: #f0f0f0; }
+    .done-count { font-size: 12px; color: #bbb; font-weight: 400; }
+    .done-toggle { margin-left: auto; font-size: 11px; color: #bbb; }
+    .done-section-body { margin-top: 6px; padding-left: 4px; }
+
+    .overtime-section { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .ot-day-label { font-size: 13px; font-weight: 700; color: #2e7d32; padding: 14px 4px 8px; border-bottom: 2px solid #e8f5e9; margin-bottom: 4px; }
+    .ot-day-label:first-child { padding-top: 0; }
+    .ot-table-wrap { overflow-x: auto; margin-top: 4px; margin-bottom: 16px; }
+
+    table { width: 100%; border-collapse: collapse; min-width: 520px; }
+    thead th { text-align: left; font-size: 12px; color: #888; font-weight: 600; padding: 8px 14px; background: #f9fafc; border-bottom: 2px solid #f0f0f0; }
+    tbody td { padding: 12px 14px; font-size: 13px; color: #333; border-bottom: 1px solid #f4f4f4; vertical-align: top; }
+    tbody tr:hover td { background: #f5fbf5; }
+    .status { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 6px; padding: 3px 9px; }
+    .s-approved { background: #e8f5e9; color: #2e7d32; }
+    .s-pending  { background: #fff8e1; color: #e65100; }
+    .s-post     { background: #fce4ec; color: #c62828; }
+
+    .state-msg { display: flex; align-items: center; justify-content: center; gap: 10px; height: 80px; color: #bbb; font-size: 14px; }
+    .loader { width: 20px; height: 20px; border: 3px solid #e0e0e0; border-top-color: #2e7d32; border-radius: 50%; animation: spin .8s linear infinite; }
+    .err-box { background: #fff5f5; border: 1px solid #ffcdd2; border-radius: 8px; padding: 14px 18px; color: #c62828; font-size: 13px; }
+
+    @media (max-width: 900px) { .top-section { grid-template-columns: 1fr; } .tab-bar { top: 68px; } }
+    @media (max-width: 640px) { .pair-group { grid-template-columns: 1fr; } .main { padding: 16px; } .tab-btn { font-size: 11px; padding: 9px 6px; } }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🌿 호남본부 업무 대시보드</h1>
+    <div class="header-sub" id="today-label"></div>
+  </div>
+  <div class="header-right">
+    <span class="refresh-time" id="refresh-time"></span>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadData()">
+      <span id="refresh-icon">↻</span> 새로고침
+    </button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="top-section">
+    <div class="summary-left">
+      <div class="summary-card">
+        <div class="summary-icon ic-blue">👥</div>
+        <div><div class="summary-value" id="s-total">-</div><div class="summary-label">전체 팀원</div></div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon ic-green">✅</div>
+        <div><div class="summary-value" id="s-plan">-</div><div class="summary-label">오늘 계획 입력</div></div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon ic-red">⏰</div>
+        <div><div class="summary-value" id="s-ot">-</div><div class="summary-label">이번 달 연장근무 (전체)</div></div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon ic-purple">🔍</div>
+        <div><div class="summary-value" id="s-recruit">-</div><div class="summary-label">방문요양 진행 중 구인</div></div>
+      </div>
+    </div>
+    <div class="center-panel">
+      <div class="center-panel-title">이번 달 센터별 연장근무 <span class="center-panel-month" id="center-month-label"></span></div>
+      <div class="center-list" id="center-list"><div class="state-msg"><div class="loader"></div></div></div>
+      <div class="center-total" id="center-total"></div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="work" onclick="switchTab('work')">🗒 업무계획 <span class="tab-cnt" id="tc-work"></span></button>
+    <button class="tab-btn" data-tab="recruit" onclick="switchTab('recruit')">🔍 구인현황 <span class="tab-cnt" id="tc-recruit"></span></button>
+    <button class="tab-btn" data-tab="slack" onclick="switchTab('slack')">📌 이슈/To-Do <span class="tab-cnt" id="tc-slack"></span></button>
+    <button class="tab-btn" data-tab="overtime" onclick="switchTab('overtime')">⏰ 연장근무</button>
+  </div>
+
+  <div id="tab-work" class="tab-panel active">
+    <div class="section-header">
+      <div class="section-title">🗒 오늘 업무 계획 <span class="count-badge" id="member-count">0</span></div>
+    </div>
+    <div class="members-grid" id="members-grid"><div class="state-msg"><div class="loader"></div> 불러오는 중...</div></div>
+  </div>
+
+  <div id="tab-recruit" class="tab-panel">
+    <div class="recruit-section">
+      <div class="section-header" style="margin-bottom:12px;">
+        <div class="section-title">🔍 구인 현황 <span style="font-size:12px;font-weight:400;color:#aaa;">(방문요양)</span> <span class="count-badge" id="recruit-count">0</span></div>
+        <span style="font-size:12px;color:#aaa;">CAATS 기준</span>
+      </div>
+      <div id="recruit-content"><div class="state-msg"><div class="loader"></div> 불러오는 중...</div></div>
+    </div>
+  </div>
+
+  <div id="tab-slack" class="tab-panel">
+    <div class="slack-section">
+      <div class="section-header" style="margin-bottom:16px;">
+        <div class="section-title">📌 이슈 / To-Do <span class="count-badge" id="slack-count">0</span></div>
+        <span style="font-size:12px;color:#aaa;">✅ 반응 = 완료</span>
+      </div>
+      <div id="slack-content"><div class="state-msg"><div class="loader"></div> 불러오는 중...</div></div>
+    </div>
+  </div>
+
+  <div id="tab-overtime" class="tab-panel">
+    <div class="overtime-section">
+      <div class="section-header" style="margin-bottom:8px;">
+        <div class="section-title">⏰ 연장근무 현황 <span style="font-size:12px;color:#aaa;font-weight:400;">오늘 · 내일</span></div>
+      </div>
+      <div id="ot-content"><div class="state-msg"><div class="loader"></div> 불러오는 중...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE_URL = '';
+
+/* ─── 미리보기용 mock 데이터 (실제 배포 시 google.script.run 사용) ─── */
+(function buildMock(){
+  const _t = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const today = fmt(_t);
+  const tmr   = fmt(new Date(_t.getTime()+86400000));
+  const dInMonth = day => fmt(new Date(_t.getFullYear(), _t.getMonth(), day));
+  const ym    = _t.getFullYear()+'-'+pad(_t.getMonth()+1);
+  const cdt   = daysAgo => fmt(new Date(_t.getTime()-daysAgo*86400000));
+  const ts    = daysAgo => String(Math.floor((_t.getTime()-daysAgo*86400000)/1000));
+  const dow = _t.getDay();
+  const thisMon = new Date(_t); thisMon.setDate(_t.getDate()-(dow===0?6:dow-1));
+  const lastWeekMid = fmt(new Date(thisMon.getTime()-5*86400000));
+
+  const DATA = {
+    clientGetMembers: {
+      date: today,
+      members: [
+        { name:'이흥덕', todayWork:'광주 호남점 방문 · 신규 어르신 상담 2건\n월말 실적 정리', tomorrowWork:'여수방문점 출장' },
+        { name:'김소형', todayWork:'김제점 운영회의\n구인 면접 1건 (오후 2시)', tomorrowWork:'' },
+        { name:'윤연임', todayWork:'여수방문점 어르신 모니터링\n보호자 상담', tomorrowWork:'월간 보고서 작성' },
+        { name:'정혜인', todayWork:'광주 병설 봄날점 신규 계약 진행', tomorrowWork:'센터 방문 점검' },
+        { name:'김미란', todayWork:'', tomorrowWork:'광주 호남점 직원 교육' },
+        { name:'임현숙', todayWork:'군산 병설 방문점 구인 면접\n긴급 대근 배치', tomorrowWork:'' },
+      ]
+    },
+    clientGetOvertime: { rows: [
+      { _sheetName:'광주 병설 봄날점', 담당자:'정혜인', 연장근로시간:'2시간',     연장근로신청일:today,         근로시간대:'18:00~20:00', 신청사유:'신규 계약 상담 지연', 승인한시간:today, 취소여부:'', 월:ym },
+      { _sheetName:'군산 병설 방문점', 담당자:'임현숙', 연장근로시간:'1시간 30분', 연장근로신청일:today,         근로시간대:'18:00~19:30', 신청사유:'긴급 대근 배치',     승인한시간:'',    취소여부:'', 월:ym },
+      { _sheetName:'여수방문점',      담당자:'윤연임', 연장근로시간:'2시간',     연장근로신청일:tmr,           근로시간대:'18:00~20:00', 신청사유:'보호자 상담',       승인한시간:tmr,   취소여부:'', 월:ym },
+      { _sheetName:'광주 호남점',     담당자:'이흥덕', 연장근로시간:'3시간',     연장근로신청일:dInMonth(5),   근로시간대:'17:00~20:00', 신청사유:'월말 실적 마감',     승인한시간:dInMonth(5),  취소여부:'', 월:ym },
+      { _sheetName:'김제점',         담당자:'김소형', 연장근로시간:'1시간',     연장근로신청일:dInMonth(10),  근로시간대:'18:00~19:00', 신청사유:'면접 진행',         승인한시간:dInMonth(12), 취소여부:'', 월:ym },
+      { _sheetName:'광주 병설 봄날점', 담당자:'정혜인', 연장근로시간:'2시간',     연장근로신청일:dInMonth(11),  근로시간대:'18:00~20:00', 신청사유:'신규 어르신 방문',   승인한시간:dInMonth(11), 취소여부:'', 월:ym },
+      { _sheetName:'광주 호남점',     담당자:'김미란', 연장근로시간:'1시간 30분', 연장근로신청일:dInMonth(12),  근로시간대:'18:00~19:30', 신청사유:'직원 교육 준비',     승인한시간:dInMonth(12), 취소여부:'', 월:ym },
+    ]},
+    clientGetSlack: {
+      leader: { messages: [
+        { text:'6월 3주차 구인 진행중인 현황 공유드립니다.(일반요양만 해당)\n• 광주 병설 봄날점 : 2건\n• 광주 호남점 : 1건 (지연 1건)', ts:ts(0), replyCount:2, done:false, permalink:'#' },
+        { text:'여수방문점 신규 어르신 배치 완료 확인 부탁드립니다.', ts:ts(1), replyCount:0, done:false, permalink:'#' },
+        { text:'5월 연장근무 정산 마감했습니다. 확인 부탁드려요.', ts:ts(9), replyCount:1, done:true, permalink:'#' },
+      ]},
+      manager: { messages: [
+        { text:'김제점 차량 정기 점검 일정 잡아주세요.', ts:ts(0), replyCount:0, done:false, permalink:'#' },
+        { text:'군산점 대근 인력 요청 건 처리 완료했습니다.', ts:ts(2), replyCount:3, done:true, permalink:'#' },
+      ]}
+    },
+    clientGetRecruit: { rows: [
+      { recruitId:1001, createDt:cdt(2),  state:'SEARCH',    type:'NEW_RECRUIT',       recipientNm:'박○순', district:'광주 광산구', districtDesc:'광주 광산구 우산동', serviceType:'RECUPERATION', department:'광주 병설 봄날점', wageHourly:12000, marketWage:12500, autoDifficulty:3, smsSentCount:5 },
+      { recruitId:1002, createDt:cdt(10), state:'CALL_DONE', type:'RE_RECRUIT',        recipientNm:'김○자', district:'광주 서구',   districtDesc:'광주 서구 화정동',   serviceType:'RECUPERATION', department:'광주 호남점',     wageHourly:11500, marketWage:13000, autoDifficulty:4, smsSentCount:12 },
+      { recruitId:1003, createDt:cdt(1),  state:'WAIT',      type:'NEW_RECRUIT',       recipientNm:'이○남', district:'전남 여수시', districtDesc:'전남 여수시 학동',   serviceType:'RECUPERATION', department:'여수방문점',     wageHourly:12500, marketWage:12500, autoDifficulty:2, smsSentCount:0 },
+      { recruitId:1004, createDt:cdt(15), state:'INTERVIEW', type:'EMERGENCY_RECRUIT', recipientNm:'최○례', district:'전북 군산시', districtDesc:'전북 군산시 나운동', serviceType:'RECUPERATION', department:'군산 병설 방문점', wageHourly:13000, marketWage:13500, autoDifficulty:5, smsSentCount:20 },
+      { recruitId:1005, createDt:cdt(3),  state:'SEARCH',    type:'COVER_RECRUIT',     recipientNm:'정○식', district:'전북 김제시', districtDesc:'전북 김제시 요촌동', serviceType:'RECUPERATION', department:'김제점',         wageHourly:12000, marketWage:12200, autoDifficulty:2, smsSentCount:3 },
+      { recruitId:1006, createDt:cdt(5),  state:'COMPLETE',  type:'NEW_RECRUIT',       recipientNm:'한○영', district:'광주 광산구', districtDesc:'광주 광산구 신가동', serviceType:'RECUPERATION', department:'광주 병설 봄날점', wageHourly:12500, marketWage:12500, autoDifficulty:3, smsSentCount:7 },
+      { recruitId:1007, createDt:cdt(20), stateChangeDt:lastWeekMid, state:'CONTRACT_DONE', type:'NEW_RECRUIT', recipientNm:'오○자', district:'광주 서구', districtDesc:'광주 서구 쌍촌동', serviceType:'RECUPERATION', department:'광주 호남점', wageHourly:12000, marketWage:12000, autoDifficulty:1, smsSentCount:9 },
+    ]},
+    clientGetCallCounts: { ok:true, counts:{ '1001':3, '1002':8, '1003':0, '1004':15, '1005':2, '1006':4 } },
+  };
+
+  function diff(id) {
+    return { recruitId:id, recipientNm:'박○순', totalPoints:6, stars:3, marketWage:12500, wageHourly:12000,
+      reasons:[
+        '시급(12,000원) < 시세(12,500원) → +1점',
+        '주말 근무 없음 → +0점',
+        '인지 저하(치매 등) 있음 → +1점',
+        '동거인 2명 (배우자, 자녀) → +1점',
+        '요양 등급 SECOND_GRADE → +1점',
+        '구인 유형 NEW_RECRUIT → +0점',
+        '특이사항 키워드 ("까다") 감지 → +1점',
+      ]};
+  }
+
+  function makeRunner(){
+    const handlers = { ok:null, fail:null };
+    const runner = {
+      withSuccessHandler(fn){ handlers.ok = fn; return runner; },
+      withFailureHandler(fn){ handlers.fail = fn; return runner; },
+    };
+    ['clientGetMembers','clientGetOvertime','clientGetSlack','clientGetRecruit','clientGetCallCounts'].forEach(fn => {
+      runner[fn] = function(){ setTimeout(() => handlers.ok && handlers.ok(JSON.parse(JSON.stringify(DATA[fn]))), 250); };
+    });
+    runner.clientGetDifficulty = function(id){ setTimeout(() => handlers.ok && handlers.ok(diff(id)), 250); };
+    return runner;
+  }
+  window.google = { script: {} };
+  Object.defineProperty(window.google.script, 'run', { get: makeRunner });
+})();
+
+function gsRun(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    let runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+    runner[fn](...args);
+  });
+}
+
+// 호남본부 팀원 구성
+const MEMBER_PAIRS = [
+  ['이흥덕', '김소형'],
+  ['윤연임', '정혜인'],
+  ['김미란', '임현숙'],
+];
+const MEMBERS = MEMBER_PAIRS.flat();
+
+const CENTER_ORDER = ['광주 병설 봄날점', '광주 호남점', '여수방문점', '군산 병설 방문점', '김제점'];
+
+let _otRows = [], _thisYear, _thisMonth, _selectedCenter = null;
+let _callCounts = null;
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+(function () {
+  const d = new Date(); const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('today-label').textContent = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+})();
+
+async function loadData() {
+  const btn = document.getElementById('refresh-btn');
+  const icon = document.getElementById('refresh-icon');
+  btn.disabled = true; icon.className = 'spin';
+  document.getElementById('recruit-content').innerHTML = '<div class="state-msg"><div class="loader"></div> 불러오는 중...</div>';
+  document.getElementById('s-recruit').textContent = '-';
+  document.getElementById('tc-recruit').textContent = '-';
+
+  try {
+    const [membersData, overtimeData, slackData] = await Promise.all([
+      gsRun('clientGetMembers'),
+      gsRun('clientGetOvertime'),
+      gsRun('clientGetSlack'),
+    ]);
+
+    const today     = new Date(membersData.date);
+    const thisYear  = today.getFullYear();
+    const thisMonth = today.getMonth() + 1;
+    const members   = (membersData.members || []).filter(m => MEMBERS.includes((m.name || '').trim()));
+    const otRows    = overtimeData.rows || [];
+
+    document.getElementById('s-total').textContent      = members.length;
+    document.getElementById('s-plan').textContent       = members.filter(m => (m.todayWork || '').trim()).length;
+    document.getElementById('s-ot').textContent         = otRows.filter(r => isInMonth(r, thisYear, thisMonth)).length;
+    document.getElementById('member-count').textContent = members.length;
+    document.getElementById('tc-work').textContent      = members.length;
+
+    renderCenterPanel(otRows, thisYear, thisMonth);
+    renderMembers(members, otRows, thisYear, thisMonth);
+    renderSlack(slackData);
+    renderOT(otRows, today);
+
+    const now = new Date();
+    document.getElementById('refresh-time').textContent = `업데이트: ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    /* 구인 데이터 + 콜 데이터 백그라운드 로드 */
+    gsRun('clientGetRecruit')
+      .then(recruitData => {
+        const activeStates = new Set(['WAIT','CALL_DONE','SEARCH','INTERVIEW']);
+        const recruitActive = (recruitData.rows || [])
+          .filter(r => r.serviceType === 'RECUPERATION' && activeStates.has(r.state)).length;
+        document.getElementById('s-recruit').textContent  = recruitActive;
+        document.getElementById('tc-recruit').textContent = recruitActive;
+        renderRecruit(recruitData);
+        gsRun('clientGetCallCounts')
+          .then(callResult => {
+            if (callResult && callResult.ok) {
+              _callCounts = callResult.counts || {};
+              applyCallCounts();
+            }
+          })
+          .catch(() => {});
+      })
+      .catch(err => {
+        document.getElementById('recruit-content').innerHTML =
+          `<div class="err-box">❌ 구인 데이터 오류: ${esc(err.message)}</div>`;
+        document.getElementById('s-recruit').textContent  = '-';
+        document.getElementById('tc-recruit').textContent = '-';
+      });
+
+  } catch(e) {
+    document.getElementById('members-grid').innerHTML =
+      `<div class="err-box">❌ 데이터를 불러오지 못했습니다: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    icon.className = '';
+  }
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function monthNum(val) {
+  if (val===null||val===undefined||val==='') return null;
+  if (typeof val==='number') return val;
+  const s=String(val).trim();
+  if (/^\d+$/.test(s)) return parseInt(s);
+  const m1=s.match(/^(\d+)월/); if(m1) return parseInt(m1[1]);
+  const m2=s.match(/^\d{4}-(\d{2})/); if(m2) return parseInt(m2[1]);
+  return null;
+}
+
+function normalizeMember(name) {
+  return String(name || '').replace(/^@/, '').replace(/\[.*?\]/, '').trim();
+}
+
+function parseHours(val) {
+  if (!val && val !== 0) return 0;
+  const s = String(val).trim();
+  let h = 0, m = 0;
+  const hm = s.match(/(\d+(?:\.\d+)?)\s*시간/);
+  const mm = s.match(/(\d+)\s*분/);
+  if (hm) h = parseFloat(hm[1]);
+  if (mm) m = parseInt(mm[1]);
+  if (!hm && !mm) { const n = parseFloat(s); if (!isNaN(n)) h = n; }
+  return h + m / 60;
+}
+function formatHours(total) {
+  if (!total) return '0시간';
+  const h = Math.floor(total), m = Math.round((total - h) * 60);
+  if (m === 0) return `${h}시간`;
+  if (h === 0) return `${m}분`;
+  return `${h}시간 ${m}분`;
+}
+
+function isInMonth(r, year, month) {
+  if (r['취소여부']) return false;
+  const d=r['연장근로신청일'];
+  if (d) { const s=String(d).trim(); const m=s.match(/^(\d{4})-(\d{2})/); if(m) return +m[1]===year&&+m[2]===month; }
+  const wStr=String(r['월']||'').trim(); const wm=wStr.match(/^(\d{4})-(\d{2})/);
+  if (wm) return +wm[1]===year&&parseInt(wm[2])===month;
+  return monthNum(r['월'])===month;
+}
+
+const RECRUIT_STATE = {
+  WAIT:      { label:'대기중',   cls:'rs-wait' },
+  CALL_DONE: { label:'전화완료', cls:'rs-call' },
+  SEARCH:    { label:'구인중',   cls:'rs-search' },
+  INTERVIEW: { label:'면접',     cls:'rs-interview' },
+  COMPLETE:  { label:'면접통과', cls:'rs-complete' },
+};
+const RECRUIT_TYPE = {
+  NEW_RECRUIT:       { label:'신규구인', cls:'rt-new' },
+  RE_RECRUIT:        { label:'재구인',   cls:'rt-re' },
+  EMERGENCY_RECRUIT: { label:'긴급구인', cls:'rt-emg' },
+  COVER_RECRUIT:     { label:'대근',     cls:'rt-cover' },
+};
+
+/* ── 센터 패널 ── */
+function renderCenterPanel(otRows, thisYear, thisMonth) {
+  _otRows = otRows; _thisYear = thisYear; _thisMonth = thisMonth;
+  document.getElementById('center-month-label').textContent = `${thisMonth}월`;
+  renderCenterView();
+}
+
+function selectCenter(centerName) { _selectedCenter = centerName; renderCenterView(); }
+
+function renderCenterView() {
+  const listEl  = document.getElementById('center-list');
+  const totalEl = document.getElementById('center-total');
+  const monthRows = _otRows.filter(r => isInMonth(r, _thisYear, _thisMonth));
+  if (_selectedCenter) {
+    const centerRows = monthRows.filter(r => (r['_sheetName'] || '') === _selectedCenter);
+    if (!centerRows.length) {
+      listEl.innerHTML = `<div class="center-detail-back" onclick="selectCenter(null)">← 전체</div><div class="state-msg" style="height:60px;">내역 없음</div>`;
+      totalEl.textContent = ''; return;
+    }
+    const memberHours = {};
+    centerRows.forEach(r => { const name = normalizeMember(r['담당자']) || '-'; memberHours[name] = (memberHours[name]||0) + parseHours(r['연장근로시간']); });
+    const sorted = Object.entries(memberHours).sort((a,b) => b[1]-a[1]);
+    const totalH = sorted.reduce((s,[,h]) => s+h, 0);
+    listEl.innerHTML = `
+      <div class="center-detail-back" onclick="selectCenter(null)">← 전체</div>
+      <div class="center-detail-title">🏢 ${esc(_selectedCenter)}</div>
+      <div class="center-detail-list">${sorted.map(([name,hours]) =>
+        `<div class="center-detail-row"><div class="center-detail-name">${esc(name)}</div><div class="center-detail-hours">${formatHours(hours)}</div></div>`
+      ).join('')}</div>`;
+    totalEl.innerHTML = `합계 <strong>${formatHours(totalH)}</strong>`;
+  } else {
+    const counts = {};
+    monthRows.forEach(r => { const c = r['_sheetName'] || '기타'; counts[c] = (counts[c]||0) + 1; });
+    const entries = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+    const max = entries.length ? entries[0][1] : 1;
+    if (!entries.length) { listEl.innerHTML='<div class="state-msg" style="height:60px;">이번 달 내역 없음</div>'; totalEl.textContent=''; return; }
+    listEl.innerHTML = entries.map(([name,count]) => `
+      <div class="center-row" data-center="${esc(name)}" onclick="selectCenter(this.dataset.center)">
+        <div class="center-name" title="${name}">${name}</div>
+        <div class="center-bar-wrap"><div class="center-bar" style="width:${Math.round(count/max*100)}%"></div></div>
+        <div class="center-count">${count}</div>
+      </div>`).join('');
+    totalEl.innerHTML = `합계 <strong>${monthRows.length}건</strong>`;
+  }
+}
+
+/* ── 팀원 카드 ── */
+function renderMembers(members, otRows, thisYear, thisMonth) {
+  const grid = document.getElementById('members-grid');
+  if (!members.length) { grid.innerHTML='<div class="state-msg">팀원 시트가 없습니다.</div>'; return; }
+  const memberMap = {}; members.forEach(m => memberMap[m.name] = m);
+  function renderCard(name) {
+    const m = memberMap[name];
+    if (!m) return `<div class="member-card"><div class="member-top"><div class="member-name-wrap"><div class="avatar">${name.charAt(0)}</div><div class="member-name">${name}</div></div></div><div class="work-box empty">오늘 업무 계획 없음</div></div>`;
+    const hasOT  = otRows.some(r => r['담당자'] === m.name && isInMonth(r, thisYear, thisMonth));
+    const work   = (m.todayWork    || '').trim();
+    const tmrWork = (m.tomorrowWork || '').trim();
+    return `<div class="member-card ${hasOT?'has-overtime':''}">
+      <div class="member-top">
+        <div class="member-name-wrap"><div class="avatar">${m.name.charAt(0)}</div><div class="member-name">${m.name}</div></div>
+        ${hasOT ? '<span class="ot-badge">🕐 연장근무</span>' : ''}
+      </div>
+      <div class="work-days">
+        <div><span class="work-day-label today">📅 오늘</span><div class="work-box ${work?'':'empty'}">${work?esc(work):'업무 계획 없음'}</div></div>
+        <div><span class="work-day-label">📅 내일</span><div class="work-box tomorrow ${tmrWork?'':'empty'}">${tmrWork?esc(tmrWork):'업무 계획 없음'}</div></div>
+      </div>
+    </div>`;
+  }
+  grid.innerHTML = MEMBER_PAIRS.map(pair =>
+    `<div class="pair-group">${pair.map(name => renderCard(name)).join('')}</div>`
+  ).join('');
+}
+
+/* ── 구인 현황 ── */
+function callBadgeHtml(count) {
+  if (count === null || count === undefined) return '<span class="call-loading">…</span>';
+  if (!count) return '<span style="color:#ccc;font-size:13px;">-</span>';
+  return `<span class="call-badge call-blue">📞 ${count}명</span>`;
+}
+
+function applyCallCounts() {
+  if (!_callCounts) return;
+  document.querySelectorAll('[data-recruit-id]').forEach(el => {
+    el.innerHTML = callBadgeHtml(_callCounts[el.dataset.recruitId] || 0);
+  });
+}
+
+function renderRecruit(recruit) {
+  const el = document.getElementById('recruit-content');
+  if (recruit?.error) { el.innerHTML=`<div class="err-box">❌ 구인 데이터 오류: ${esc(recruit.error)}</div>`; return; }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dow = today.getDay();
+  const thisMonday = new Date(today); thisMonday.setDate(today.getDate()-(dow===0?6:dow-1));
+  const prevMonday = new Date(thisMonday); prevMonday.setDate(thisMonday.getDate()-7);
+  const prevSunday = new Date(thisMonday); prevSunday.setDate(thisMonday.getDate()-1); prevSunday.setHours(23,59,59,999);
+  const ACTIVE_STATES = new Set(Object.keys(RECRUIT_STATE));
+  const allVisit   = (recruit?.rows||[]).filter(r => r.serviceType==='RECUPERATION');
+  const activeRows = allVisit.filter(r => ACTIVE_STATES.has(r.state));
+  const contractRows = allVisit.filter(r => {
+    if (r.state !== 'CONTRACT_DONE') return false;
+    const dt = r.stateChangeDt ? new Date(r.stateChangeDt) : null;
+    return dt && dt >= prevMonday && dt <= prevSunday;
+  });
+  const rows = [...activeRows, ...contractRows];
+  if (!rows.length) { el.innerHTML='<div class="state-msg">방문요양 구인 데이터가 없습니다.</div>'; return; }
+  const withDays = rows.map(r => {
+    const dt = r.createDt ? new Date(r.createDt.replace(' ','T')) : null;
+    if (dt) dt.setHours(0,0,0,0);
+    return { ...r, daysSince: dt ? Math.floor((today-dt)/86400000) : 0, isContract: !ACTIVE_STATES.has(r.state) };
+  });
+  document.getElementById('recruit-count').textContent = activeRows.length;
+  document.getElementById('tc-recruit').textContent    = activeRows.length;
+  const groups = {};
+  for (const r of withDays) { const dept = r.department||'기타'; if (!groups[dept]) groups[dept]=[]; groups[dept].push(r); }
+  for (const dept of Object.keys(groups)) {
+    groups[dept].sort((a,b) => { if (a.isContract!==b.isContract) return a.isContract?1:-1; return (b.createDt||'').localeCompare(a.createDt||''); });
+  }
+  const orderedDepts = [...CENTER_ORDER.filter(c => groups[c]), ...Object.keys(groups).filter(c => !CENTER_ORDER.includes(c)).sort()];
+  function daysBadge(days) {
+    if (days<=3) return `<span class="days-badge days-ok">D+${days}</span>`;
+    if (days<=7) return `<span class="days-badge days-warn">D+${days}</span>`;
+    return `<span class="days-badge days-over">D+${days}</span>`;
+  }
+  const THEAD = `<thead><tr><th>구인생성일</th><th>구인상태</th><th>구인유형</th><th>수급자명</th><th>구인지역</th><th>시급 / 지역시세</th><th>난이도</th><th>문자</th><th>통화</th></tr></thead>`;
+  function buildRow(r) {
+    const state  = r.isContract ? {label:'계약완료',cls:'rs-contracted'} : (RECRUIT_STATE[r.state]||{label:r.state||'-',cls:''});
+    const type   = RECRUIT_TYPE[r.type]||{label:r.type||'-',cls:''};
+    const rowCls = r.isContract ? 'recruit-contracted' : (r.daysSince>7 ? 'recruit-overdue' : '');
+    const wage   = r.wageHourly ? r.wageHourly.toLocaleString()+'원' : '-';
+    const marketWageHtml = r.marketWage ? `<div style="font-size:11px;color:#888;margin-top:2px;">시세 ~${r.marketWage.toLocaleString()}원</div>` : '';
+    const callCount = _callCounts ? (_callCounts[r.recruitId]||0) : null;
+    const smsCnt  = r.smsSentCount || 0;
+    const caatsUrl = `https://caats.caring.co.kr/recruit/detail/?recruitId=${r.recruitId}`;
+    const smsHtml = smsCnt > 0
+      ? `<span class="sms-badge" onclick="window.open('${caatsUrl}','_blank')" style="cursor:pointer;">✉ ${smsCnt}</span>`
+      : `<span style="color:#ccc;font-size:13px;">-</span>`;
+    return `<tr class="${rowCls}">
+      <td style="white-space:nowrap;color:#888;">${esc(r.createDt||'-')}${r.isContract?'':daysBadge(r.daysSince)}</td>
+      <td><span class="status ${state.cls}">${state.label}</span></td>
+      <td><span class="status ${type.cls}">${type.label}</span></td>
+      <td onclick="window.open('${caatsUrl}','_blank')" style="cursor:pointer;font-weight:700;white-space:nowrap;">${esc(r.recipientNm||'-')} <span style="font-size:10px;color:#2e7d32;">↗</span></td>
+      <td style="white-space:nowrap;">${esc(r.districtDesc||r.district||'-')}</td>
+      <td style="white-space:nowrap;"><div style="font-weight:600;color:#2e7d32;">${wage}</div>${marketWageHtml}</td>
+      <td>${starsHtml(r.autoDifficulty, r.recruitId)}</td>
+      <td>${smsHtml}</td>
+      <td data-recruit-id="${r.recruitId}">${callBadgeHtml(callCount)}</td>
+    </tr>`;
+  }
+  el.innerHTML = orderedDepts.map(dept => {
+    const rs = groups[dept];
+    const overdueCount = rs.filter(r => !r.isContract && r.daysSince>7).length;
+    return `<div class="recruit-group-label active">🏢 ${esc(dept)}<span class="recruit-group-cnt">${rs.length}건</span>${overdueCount>0?`<span class="days-badge days-over" style="margin-left:6px;">⚠️ ${overdueCount}건 초과</span>`:''}</div>
+      <div class="recruit-table-wrap" style="margin-bottom:8px;"><table>${THEAD}<tbody>${rs.map(buildRow).join('')}</tbody></table></div>`;
+  }).join('');
+}
+
+/* ── Slack (두 채널) ── */
+function renderSlack(slack) {
+  const el        = document.getElementById('slack-content');
+  const leaderData  = slack?.leader  || { messages: [] };
+  const managerData = slack?.manager || { messages: [] };
+
+  if (leaderData.error && managerData.error) {
+    el.innerHTML = `<div class="err-box">❌ 슬랙 오류: ${esc(leaderData.error)}</div>`;
+    return;
+  }
+
+  const sixMonthsAgo = Date.now() - 180 * 24 * 60 * 60 * 1000;
+  const isRecent = m => parseFloat(m.ts) * 1000 >= sixMonthsAgo;
+
+  function buildChannelBlock(data, channelLabel, channelCls, itemCls) {
+    const messages = data.messages || [];
+    const undone = messages.filter(m => !m.done && isRecent(m)).sort((a,b) => parseFloat(b.ts)-parseFloat(a.ts));
+    const done   = messages.filter(m =>  m.done && isRecent(m)).sort((a,b) => parseFloat(b.ts)-parseFloat(a.ts));
+    function renderItem(m) {
+      return `<div class="todo-item ${itemCls} ${m.done?'done':''}">
+        <div class="todo-check">${m.done?'✅':'⬜'}</div>
+        <div class="todo-body">
+          <div class="todo-text">${esc(m.text)}</div>
+          <div class="todo-meta">
+            <span class="todo-date">${tsToDate(m.ts)}</span>
+            ${m.replyCount>0?`<span class="todo-thread">💬 ${m.replyCount}개 댓글</span>`:''}
+            ${m.permalink?`<a class="slack-link" href="${m.permalink}" target="_blank">🔗 Slack</a>`:''}
+          </div>
+        </div>
+      </div>`;
+    }
+    let html = `<div class="slack-channel-block">
+      <div class="slack-channel-title ${channelCls}">${channelLabel} <span style="font-size:11px;font-weight:400;">${undone.length}건 미완료</span></div>`;
+    if (!undone.length && !done.length) {
+      html += '<div class="state-msg" style="height:50px;">등록된 이슈가 없습니다.</div>';
+    } else {
+      html += `<div class="todo-list">${undone.map(renderItem).join('')}</div>`;
+      if (done.length) {
+        const doneByMonth = {};
+        done.forEach(m => { const d=new Date(parseFloat(m.ts)*1000); const key=`${d.getFullYear()}년 ${d.getMonth()+1}월`; if(!doneByMonth[key])doneByMonth[key]=[]; doneByMonth[key].push(m); });
+        const monthSections = Object.entries(doneByMonth).map(([month,items]) => `
+          <div class="done-month-section">
+            <div class="done-section-header" onclick="toggleDoneSection(this)">📅 ${month} <span class="done-count">${items.length}건</span><span class="done-toggle">▼ 펼치기</span></div>
+            <div class="done-section-body" style="display:none;"><div class="todo-list">${items.map(renderItem).join('')}</div></div>
+          </div>`).join('');
+        html += `<div class="done-section"><div class="done-section-title">✅ 완료된 이슈 · ${done.length}건</div>${monthSections}</div>`;
+      }
+    }
+    html += '</div>';
+    return { html, undoneCount: undone.length };
+  }
+
+  const leader  = buildChannelBlock(leaderData,  '📢 리더채널',  'slack-ch-leader',  '');
+  const manager = buildChannelBlock(managerData, '💼 매니져방', 'slack-ch-manager', 'manager');
+
+  el.innerHTML = leader.html + '<hr style="border:none;border-top:1px dashed #e0e0e0;margin:8px 0 24px;">' + manager.html;
+
+  const totalUndone = leader.undoneCount + manager.undoneCount;
+  document.getElementById('slack-count').textContent = totalUndone;
+  document.getElementById('tc-slack').textContent    = totalUndone;
+}
+
+function toggleDoneSection(header) {
+  const body = header.nextElementSibling; const toggle = header.querySelector('.done-toggle');
+  const isOpen = body.style.display !== 'none'; body.style.display = isOpen ? 'none' : 'block';
+  toggle.textContent = isOpen ? '▼ 펼치기' : '▲ 접기';
+}
+
+function tsToDate(ts) {
+  if (!ts) return '';
+  const d = new Date(parseFloat(ts)*1000); const days = ['일','월','화','수','목','금','토'];
+  return `${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]}) ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* ── 연장근무 ── */
+function renderOT(rows, today) {
+  const el       = document.getElementById('ot-content');
+  const todayD   = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const tomorrowD = new Date(todayD.getTime() + 86400000);
+  function parseDate(val) { if (!val) return null; const d=new Date(val); if (isNaN(d)) return null; return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+  function sameDay(a,b) { return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
+  const todayRows    = rows.filter(r => sameDay(parseDate(r['연장근로신청일']),todayD)    && !r['취소여부']);
+  const tomorrowRows = rows.filter(r => sameDay(parseDate(r['연장근로신청일']),tomorrowD) && !r['취소여부']);
+  if (!todayRows.length && !tomorrowRows.length) { el.innerHTML='<div class="state-msg">오늘·내일 예정된 연장근무가 없습니다.</div>'; return; }
+  const days = ['일','월','화','수','목','금','토'];
+  function dateLabel(d) { return `${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`; }
+  function buildTable(rs, label) {
+    if (!rs.length) return '';
+    return `<div class="ot-day-label">${label}<span style="font-size:11px;color:#888;font-weight:400;margin-left:8px;">${rs.length}건</span></div>
+      <div class="ot-table-wrap"><table>
+        <thead><tr><th>센터</th><th>담당자</th><th>연장 시간</th><th>근로 시간대</th><th>신청 사유</th><th>상태</th></tr></thead>
+        <tbody>${rs.map(r => {
+          const approved = !!(r['승인한시간']); const workDate = parseDate(r['연장근로신청일']); let isPost = false;
+          if (approved && workDate) { const am=String(r['승인한시간']).trim().match(/^(\d{4})-(\d{2})-(\d{2})/); if(am) isPost=new Date(+am[1],+am[2]-1,+am[3])>workDate; }
+          const sc = !approved ? 's-pending' : (isPost ? 's-post' : 's-approved');
+          const st = !approved ? '검토중' : (isPost ? '사후승인' : '승인');
+          return `<tr>
+            <td><span style="font-size:11px;font-weight:600;color:#2e7d32;">${esc(r['_sheetName']||'-')}</span></td>
+            <td><strong>${r['담당자']||'-'}</strong></td><td>${r['연장근로시간']||'-'}</td>
+            <td>${r['근로시간대']||'-'}</td><td>${esc(String(r['신청사유']||'-'))}</td>
+            <td><span class="status ${sc}">${st}</span></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`;
+  }
+  el.innerHTML = buildTable(todayRows, `📅 오늘 · ${dateLabel(todayD)}`) + buildTable(tomorrowRows, `📅 내일 · ${dateLabel(tomorrowD)}`);
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── 난이도 별 ── */
+function starsHtml(autoDiff, recruitId) {
+  const val = autoDiff || 0;
+  const clickable = !!(autoDiff && recruitId);
+  return `<div class="stars${clickable?' clickable':''}" ${clickable?`onclick="showDiffDetail('${recruitId}')" title="클릭해서 난이도 근거 확인"`:''}>${
+    [1,2,3,4,5].map(n => `<span class="star" style="color:${n<=val?'#ffa000':'#ddd'}">★</span>`).join('')
+  }</div>`;
+}
+
+function showDiffDetail(recruitId) {
+  openModal('<div class="state-msg"><div class="loader"></div> 분석 중...</div>', '난이도 근거');
+  gsRun('clientGetDifficulty', recruitId)
+    .then(d => {
+      const filled = '★'.repeat(d.stars), empty = '☆'.repeat(5-d.stars);
+      const list = (d.reasons||[]).map(r => {
+        const isPos = /\+[1-9]/.test(r);
+        return `<div class="diff-item ${isPos?'pos':'zero'}">${esc(r)}</div>`;
+      }).join('');
+      openModal(`
+        <div class="diff-stars-big"><span style="color:#ffa000">${filled}</span><span style="color:#ddd">${empty}</span></div>
+        <div class="diff-pts">총 ${d.totalPoints}점 → ${d.stars}★</div>
+        <div class="diff-list">${list}</div>
+      `, `${esc(d.recipientNm||'')} 난이도 근거`);
+    })
+    .catch(e => openModal(`<div class="err-box">❌ ${esc(e.message)}</div>`, '오류'));
+}
+
+function openModal(content, title) {
+  let ov = document.getElementById('diff-overlay');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id='diff-overlay'; ov.className='diff-overlay';
+    ov.onclick = e => { if (e.target===ov) closeModal(); };
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = `<div class="diff-modal">
+    <div class="diff-modal-hd"><span>${title}</span><button onclick="closeModal()">✕</button></div>
+    <div class="diff-modal-bd">${content}</div>
+  </div>`;
+  ov.style.display = 'flex';
+}
+function closeModal() { const ov=document.getElementById('diff-overlay'); if(ov) ov.style.display='none'; }
+
+loadData();
+setInterval(loadData, 15*60*1000);
+</script>
+</body>
+</html>
