@@ -30,8 +30,8 @@ const NAME_MAP = {
 };
 const MEMBER_NAMES  = ['이흥덕', '김소형', '윤연임', '정혜인', '김미란', '임현숙'];
 
-// TODO: 연장근무 스프레드시트 ID를 입력하세요
-const OVERTIME_ID = 'TODO_연장근무_스프레드시트_ID';
+// 연장근무도 업무계획과 같은 스프레드시트(연장근무_입력 탭)를 사용
+const OVERTIME_ID = WORK_PLAN_IDS[0];
 
 const SLACK_TOKEN = PropertiesService.getScriptProperties().getProperty('SLACK_TOKEN');
 const SLACK_CHANNEL_LEADER  = 'C07V8TEHPT9';  // 01_호남본부_주간_요양_리더채널
@@ -60,13 +60,20 @@ const DEPT_ALIAS = {
   '김제점':         ['김제센터'],
 };
 
-// 호남 센터 담당자 Slack User ID (확인 후 채워주세요)
+// 호남 센터 담당 지점장 Slack User ID
 const CENTER_MANAGER_IDS = {
-  '광주 병설 봄날점': '',
-  '광주 호남점':     '',
-  '여수방문점':      '',
-  '군산 병설 방문점': '',
-  '김제점':         '',
+  '광주 병설 봄날점': 'U08PGHM83L7',  // 정혜인
+  '광주 호남점':     'U069PFYBLG7',  // 김미란(호남센터 센터장)
+  '여수방문점':      'U0822MC1N68',  // 윤연임
+  '군산 병설 방문점': 'U09A6SS0P62',  // 임현숙
+  '김제점':         'U07KDSE5ZMK',  // 김소형
+};
+const CENTER_MANAGER_NAMES = {
+  '광주 병설 봄날점': '정혜인',
+  '광주 호남점':     '김미란',
+  '여수방문점':      '윤연임',
+  '군산 병설 방문점': '임현숙',
+  '김제점':         '김소형',
 };
 
 // ─── 공통 유틸 ───────────────────────────────────────────────────────────────
@@ -130,6 +137,7 @@ function doGet(e) {
   if (action === 'overtime') return withCache('hn_overtime', 300, () => getOvertimeData());
   if (action === 'slack')    return withCache('hn_slack',    180, () => getSlackMessages());
   if (action === 'recruit')  return withCache('hn_recruit',  600, () => getRecruitData());
+  if (action === 'otApprove') return otApproveResponse(e.parameter.id);
 
   if (action === 'debugOvertime')    return debugOvertimeResponse();
   if (action === 'debugWork')        return debugContentResponse();
@@ -142,26 +150,58 @@ function doGet(e) {
 
 // ─── 업무계획 ─────────────────────────────────────────────────────────────────
 
+// ─── 업무계획 입력 탭 생성 (Slack 워크플로우 연동용, 1회 실행) ───
+function createWorkflowInputSheet() {
+  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS가 비어있습니다. 먼저 채워주세요.'); return; }
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('업무계획_입력');
+  if (!sheet) sheet = ss.insertSheet('업무계획_입력', 0);
+  else { ss.setActiveSheet(sheet); ss.moveActiveSheet(1); }
+  sheet.clear();
+  sheet.getRange('A1:C1').setValues([['담당자', '업무날짜', '업무내용']])
+       .setFontWeight('bold').setBackground('#a5d6a7').setHorizontalAlignment('center');
+  sheet.setColumnWidth(1, 100); sheet.setColumnWidth(2, 120); sheet.setColumnWidth(3, 560);
+  sheet.setFrozenRows(1);
+  Logger.log('✅ "업무계획_입력" 탭 생성 완료.');
+  Logger.log('Slack 워크플로우 "스프레드시트 행 추가" 단계에서 이 탭을 대상으로, 열을 A=담당자 / B=업무날짜 / C=업무내용 으로 매핑하세요.');
+}
+
+// ─── 업무계획 읽기 (업무계획_입력 탭 기반) ───
 function getMembersWork(today) {
-  const tomorrow  = getNextWeekday(today);
-  const resultMap = {};
+  const tz          = Session.getScriptTimeZone();
+  const tomorrow    = getNextWeekday(today);
+  const todayStr    = Utilities.formatDate(today,    tz, 'yyyy-MM-dd');
+  const tomorrowStr = Utilities.formatDate(tomorrow, tz, 'yyyy-MM-dd');
+  const result = {};
+  MEMBER_NAMES.forEach(n => result[n] = { name: n, todayWork: '', tomorrowWork: '' });
+
+  function normDate(v) {
+    if (v instanceof Date) return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+    const s = String(v).trim();
+    const m = s.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+    if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+    return s;
+  }
+
   for (const ssId of WORK_PLAN_IDS) {
     try {
-      const ss = SpreadsheetApp.openById(ssId);
-      for (const sheet of ss.getSheets()) {
-        const rawName = sheet.getName();
-        const name    = NAME_MAP[rawName] || rawName;
-        if (!MEMBER_NAMES.includes(name)) continue;
-        if (MEMBER_SS_MAP[name] && MEMBER_SS_MAP[name] !== ssId) continue;
-        const todayWork    = getTodayWork(sheet, today);
-        const tomorrowWork = getTodayWork(sheet, tomorrow);
-        if (!resultMap[name]) {
-          resultMap[name] = { name, todayWork: todayWork || '', tomorrowWork: tomorrowWork || '' };
-        }
-      }
+      const ss    = SpreadsheetApp.openById(ssId);
+      const sheet = ss.getSheetByName('업무계획_입력');
+      if (!sheet || sheet.getLastRow() < 2) continue;
+      const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
+      // 위에서 아래로 적용 → 같은 담당자·날짜 재입력 시 나중(최신) 행이 덮어씀
+      rows.forEach(r => {
+        const name    = NAME_MAP[String(r[0]).trim()] || String(r[0]).trim();
+        if (!result[name]) return;
+        const content = String(r[2] || '').trim();
+        if (!content) return;
+        const dStr = normDate(r[1]);
+        if      (dStr === todayStr)    result[name].todayWork    = content;
+        else if (dStr === tomorrowStr) result[name].tomorrowWork = content;
+      });
     } catch(e) {}
   }
-  return Object.values(resultMap);
+  return Object.values(result);
 }
 
 function getTodayWork(sheet, today) {
@@ -241,33 +281,171 @@ function getTodayWork(sheet, today) {
 
 // ─── 연장근무 ─────────────────────────────────────────────────────────────────
 
+// ─── 연장근무: 승인 DM/링크용 웹앱 URL + 날짜 변환 ───
+const WEBAPP_URL = 'https://script.google.com/a/macros/caring.co.kr/s/AKfycbwd_7QEADb_TQhSgrfG88uRvCImMls-feHGKRIsAfImcyjDwiw0z7c4-DzLQ-EEFikD4g/exec';
+
+function otFmtDate(v) {
+  if (v === '' || v == null) return '';
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  if (typeof v === 'number') return Utilities.formatDate(new Date(Math.round((v - 25569) * 86400000)), 'GMT', 'yyyy-MM-dd');
+  const m = String(v).trim().match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  return m ? m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2) : String(v).trim();
+}
+
+// ─── 연장근무 입력 탭 생성 (1회 실행) ───
+// 열: A센터 B담당자 C신청일 D시간대 E연장시간 F사유 G승인한시간 H승인 I신청ID J승인자
+function createOvertimeInputSheet() {
+  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS가 비어있습니다.'); return; }
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('연장근무_입력');
+  if (!sheet) sheet = ss.insertSheet('연장근무_입력', 1);
+  sheet.clear();
+  sheet.getRange(1, 1, sheet.getMaxRows(), 10).clearDataValidations();
+  const headers = ['센터', '담당자', '연장근로신청일', '근로시간대', '연장근로시간', '신청사유', '승인한시간', '승인', '신청ID', '승인자'];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+       .setFontWeight('bold').setBackground('#a5d6a7').setHorizontalAlignment('center');
+  [140, 90, 120, 110, 100, 280, 130, 60, 40, 110].forEach((w, i) => sheet.setColumnWidth(i + 1, w));
+  sheet.hideColumns(9);
+  sheet.setFrozenRows(1);
+  const maxR = sheet.getMaxRows();
+  if (maxR > 50) sheet.deleteRows(51, maxR - 50);
+  Logger.log('✅ "연장근무_입력" 탭(10열) 생성. 워크플로우 매핑 A~F. 신청은 2행부터 쌓임.');
+}
+
+// ─── 새 신청 처리: 체크박스 부여 + 날짜정리 + 지점장 승인 DM (onChange 트리거) ───
+function onOvertimeChange() {
+  try {
+    const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+    const sheet = ss.getSheetByName('연장근무_입력');
+    if (!sheet) return;
+    const last = sheet.getLastRow();
+    if (last < 2) return;
+    sheet.getRange(2, 8, last - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+    const data = sheet.getRange(2, 1, last - 1, 10).getValues();
+    for (let i = 0; i < data.length; i++) {
+      const r = data[i], row = i + 2;
+      const name = String(r[1] || '').trim(), center = String(r[0] || '').trim(), id = String(r[8] || '').trim();
+      if (!name || id) continue;
+      const niceDate = otFmtDate(r[2]);
+      if (niceDate && niceDate !== String(r[2])) sheet.getRange(row, 3).setValue(niceDate);
+      const newId = Utilities.getUuid();
+      sheet.getRange(row, 9).setValue(newId);
+      sendOvertimeApprovalDM(center, name, r, newId);
+    }
+  } catch (e) {}
+}
+
+// ─── 담당 지점장에게 승인 요청 DM (승인 링크 포함) ───
+function sendOvertimeApprovalDM(center, name, r, id) {
+  try {
+    const mgr = CENTER_MANAGER_IDS[center]; if (!mgr) return;
+    const op = UrlFetchApp.fetch('https://slack.com/api/conversations.open', { method: 'post', headers: { Authorization: 'Bearer ' + SLACK_TOKEN }, payload: { users: mgr }, muteHttpExceptions: true });
+    const ch = (JSON.parse(op.getContentText()).channel || {}).id; if (!ch) return;
+    const date = otFmtDate(r[2]);
+    const url = WEBAPP_URL + '?action=otApprove&id=' + id;
+    const txt = '🕐 *연장근무 승인 요청*\n*센터:* ' + center + '\n*담당자:* ' + name + '\n*일자:* ' + date + '   *시간대:* ' + (r[3] || '') + ' (' + (r[4] || '') + ')\n*사유:* ' + (r[5] || '') + '\n\n👉 <' + url + '|✅ 승인하기>';
+    UrlFetchApp.fetch('https://slack.com/api/chat.postMessage', { method: 'post', headers: { Authorization: 'Bearer ' + SLACK_TOKEN, 'Content-Type': 'application/json' }, payload: JSON.stringify({ channel: ch, text: txt }), muteHttpExceptions: true });
+  } catch (e) {}
+}
+
+// ─── 승인 체크 시 승인한시간·승인자 자동 기록 (onEdit 트리거) ───
+function onOvertimeEdit(e) {
+  try {
+    const sh = e.range.getSheet();
+    if (sh.getName() !== '연장근무_입력') return;
+    if (e.range.getColumn() !== 8) return;
+    const row = e.range.getRow();
+    if (row < 2) return;
+    const stamp = sh.getRange(row, 7);
+    if (e.range.getValue() === true) {
+      if (!stamp.getValue()) stamp.setValue(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'));
+      const who = (e.user && e.user.getEmail && e.user.getEmail()) || '';
+      if (who) sh.getRange(row, 10).setValue(who);
+    } else { stamp.clearContent(); sh.getRange(row, 10).clearContent(); }
+  } catch (err) {}
+}
+
+// ─── 승인 트리거 설치 (1회 실행) ───
+function installOvertimeApprovalTrigger() {
+  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS가 비어있습니다.'); return; }
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  ScriptApp.getProjectTriggers()
+    .filter(t => ['onOvertimeEdit', 'onOvertimeChange'].includes(t.getHandlerFunction()))
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('onOvertimeEdit').forSpreadsheet(ss).onEdit().create();
+  ScriptApp.newTrigger('onOvertimeChange').forSpreadsheet(ss).onChange().create();
+  Logger.log('✅ 트리거 설치: onEdit + onChange');
+}
+
+// ─── 연장근무 읽기 (연장근무_입력 탭 기반) ───
 function getOvertimeData() {
   try {
-    const ss  = SpreadsheetApp.openById(OVERTIME_ID);
-    const tz  = ss.getSpreadsheetTimeZone() || 'Asia/Seoul';
-    const allRows = [];
-    for (const sheet of ss.getSheets()) {
-      const sheetName = sheet.getName();
-      const data      = sheet.getDataRange().getValues();
-      if (data.length < 2) continue;
-      let headerRowIdx = -1;
-      for (let r = 0; r < Math.min(10, data.length); r++) {
-        if (data[r].some(c => normalizeKey(String(c)) === '담당자')) { headerRowIdx = r; break; }
-      }
-      if (headerRowIdx === -1) continue;
-      const headers = data[headerRowIdx].map(h => normalizeKey(String(h)));
-      for (let r = headerRowIdx + 1; r < data.length; r++) {
-        const row = { _sheetName: sheetName };
-        headers.forEach((h, i) => {
-          let v = data[r][i];
-          if (v instanceof Date) v = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
-          row[h] = v;
-        });
-        if (row['담당자']) allRows.push(row);
+    const ss = SpreadsheetApp.openById(OVERTIME_ID);
+    const sheet = ss.getSheetByName('연장근무_입력');
+    if (!sheet || sheet.getLastRow() < 2) return { rows: [] };
+    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
+    const rows = [];
+    data.forEach(r => {
+      const name = String(r[1] || '').trim();
+      if (!name) return;
+      const d = otFmtDate(r[2]);
+      rows.push({
+        _sheetName: String(r[0] || '').trim() || '기타',
+        '담당자': name, '연장근로신청일': d,
+        '근로시간대': String(r[3] || '').trim(), '연장근로시간': String(r[4] || '').trim(),
+        '신청사유': String(r[5] || '').trim(), '승인한시간': otFmtDate(r[6]),
+        '승인자': String(r[9] || '').trim(), id: String(r[8] || '').trim(),
+        '취소여부': '', '월': d ? d.substring(0, 7) : ''
+      });
+    });
+    return { rows };
+  } catch (e) { return { rows: [], error: e.message }; }
+}
+
+// ─── DM 링크 승인 처리 (doGet?action=otApprove&id=...) ───
+function otApproveResponse(id) {
+  try {
+    if (!id) return otHtml('잘못된 요청', '', '', true);
+    const sheet = SpreadsheetApp.openById(OVERTIME_ID).getSheetByName('연장근무_입력');
+    const last = sheet.getLastRow(); if (last < 2) return otHtml('신청을 찾을 수 없음', '', '', true);
+    const data = sheet.getRange(2, 1, last - 1, 10).getValues();
+    for (let i = 0; i < data.length; i++) {
+      if (String(data[i][8]).trim() === String(id).trim()) {
+        const row = i + 2, center = String(data[i][0] || '').trim(), name = String(data[i][1] || '').trim();
+        if (data[i][6]) return otHtml('이미 승인된 신청입니다', name, center, true);
+        sheet.getRange(row, 7).setValue(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'));
+        sheet.getRange(row, 8).setValue(true);
+        sheet.getRange(row, 10).setValue(CENTER_MANAGER_NAMES[center] || (center + ' 지점장'));
+        try { CacheService.getScriptCache().remove('hn_overtime'); } catch (e) {}
+        return otHtml('✅ 승인 완료되었습니다', name, center, false);
       }
     }
-    return { rows: allRows };
-  } catch(e) { return { rows: [], error: e.message }; }
+    return otHtml('신청을 찾을 수 없습니다 (이미 처리/삭제)', '', '', true);
+  } catch (e) { return otHtml('오류: ' + e.message, '', '', true); }
+}
+
+function otHtml(msg, name, center, already) {
+  return HtmlService.createHtmlOutput('<div style="font-family:sans-serif;text-align:center;padding:48px 24px;"><div style="font-size:44px;">' + (already ? '☑️' : '✅') + '</div><h2 style="margin:12px 0;">' + msg + '</h2>' + (name ? ('<p style="color:#555;">' + center + ' · ' + name + ' 연장근무</p>') : '') + '<p style="color:#999;font-size:13px;">이 창은 닫으셔도 됩니다.</p></div>');
+}
+
+// ─── 대시보드 승인 버튼 처리 (google.script.run) ───
+function clientApproveOvertime(id, approverName) {
+  try {
+    const sheet = SpreadsheetApp.openById(OVERTIME_ID).getSheetByName('연장근무_입력');
+    const last = sheet.getLastRow(); if (last < 2) return { ok: false, error: 'no data' };
+    const data = sheet.getRange(2, 1, last - 1, 10).getValues();
+    for (let i = 0; i < data.length; i++) {
+      if (String(data[i][8]).trim() === String(id).trim()) {
+        const row = i + 2;
+        sheet.getRange(row, 7).setValue(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'));
+        sheet.getRange(row, 8).setValue(true);
+        sheet.getRange(row, 10).setValue(approverName || '대시보드 승인');
+        try { CacheService.getScriptCache().remove('hn_overtime'); } catch (e) {}
+        return { ok: true };
+      }
+    }
+    return { ok: false, error: 'not found' };
+  } catch (e) { return { ok: false, error: e.message }; }
 }
 
 // ─── Slack (두 채널) ──────────────────────────────────────────────────────────

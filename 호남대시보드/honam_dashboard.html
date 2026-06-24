@@ -689,12 +689,24 @@ function renderOT(rows, today) {
             <td><span style="font-size:11px;font-weight:600;color:#2e7d32;">${esc(r['_sheetName']||'-')}</span></td>
             <td><strong>${r['담당자']||'-'}</strong></td><td>${r['연장근로시간']||'-'}</td>
             <td>${r['근로시간대']||'-'}</td><td>${esc(String(r['신청사유']||'-'))}</td>
-            <td><span class="status ${sc}">${st}</span></td>
+            <td>${approved
+              ? `<span class="status ${sc}">${st}</span>${r['승인자']?`<div style="font-size:11px;color:#888;margin-top:3px;">${esc(r['승인자'])}</div>`:''}`
+              : `<button onclick="approveOt('${r.id}')" style="background:#2e7d32;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">✅ 승인</button>`}</td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>`;
   }
   el.innerHTML = buildTable(todayRows, `📅 오늘 · ${dateLabel(todayD)}`) + buildTable(tomorrowRows, `📅 내일 · ${dateLabel(tomorrowD)}`);
+}
+
+function approveOt(id) {
+  if (!id) { alert('신청 ID가 없습니다 (이전 신청 건은 대시보드 승인 불가 — 시트에서 처리하세요).'); return; }
+  const who = prompt('승인자 이름을 입력하세요 (예: 이흥덕)');
+  if (!who) return;
+  gsRun('clientApproveOvertime', id, who).then(res => {
+    if (res && res.ok) loadData();
+    else alert('승인 실패: ' + ((res && res.error) || ''));
+  }).catch(e => alert('오류: ' + e.message));
 }
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
