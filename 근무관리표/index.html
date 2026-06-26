@@ -133,7 +133,25 @@
   <button class="btn" id="exportBtn" title="모든 지점 데이터를 백업 파일 하나로 저장합니다">💾 전체 백업</button>
   <button class="btn" id="importBtn" title="백업 파일을 불러와 데이터를 복원합니다">📂 백업 불러오기</button>
   <input type="file" id="importFile" accept=".json,application/json" style="display:none">
-  <span class="sub" style="margin:0;color:var(--tx3);font-size:12px">다른 컴퓨터로 옮길 때 사용 · 백업 파일은 구글드라이브에 보관하세요</span>
+  <span style="width:1px;height:20px;background:var(--line2)"></span>
+  <button class="btn" id="suggestBtn" title="개선·건의 사항을 보냅니다" style="border-color:var(--info);color:var(--info)">💬 건의하기</button>
+  <span class="sub" style="margin:0;color:var(--tx3);font-size:12px">불편한 점·바라는 점을 보내주세요 · 백업은 구글드라이브에 보관</span>
+ </div>
+
+ <div class="modal-ov hide" id="suggestModal">
+  <div class="modal-box" style="max-width:480px">
+   <div class="modal-hd"><h2>💬 건의하기</h2><button class="btn" data-close="suggestModal">닫기 ✕</button></div>
+   <p class="sub" style="margin:0 0 10px">불편한 점, 바라는 점, 오류 등을 자유롭게 적어주세요. 담당자에게 바로 전달됩니다.</p>
+   <div class="row" style="margin-bottom:8px">
+    <label class="fld">이름(선택) <input type="text" id="sgName" placeholder="익명 가능" style="width:120px"></label>
+    <span class="sub" style="margin:0">지점: <b id="sgBranch" style="color:var(--info)"></b></span>
+   </div>
+   <textarea id="sgText" rows="5" placeholder="건의 내용을 적어주세요" style="width:100%;font-family:inherit;font-size:14px;padding:8px;border:1px solid var(--line2);border-radius:7px;resize:vertical;box-sizing:border-box"></textarea>
+   <div class="row" style="margin-top:10px;align-items:center">
+    <button class="btn pri" id="sgSend">보내기</button>
+    <span id="sgMsg" class="sub" style="margin:0;color:var(--duty);font-weight:500"></span>
+   </div>
+  </div>
  </div>
 
  <div class="modal-ov" id="loginOv" style="align-items:center">
@@ -422,7 +440,7 @@
    <div id="finalMxWrap" class="hide" style="overflow:auto"><div id="finalTable"></div></div>
   </div>
  </section>
- <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.0 (지점 이름 직접 추가·삭제 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 팝업·송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
+ <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.1 (💬 건의하기[슬랙 알림] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
 </div>
 
 <script>
@@ -510,6 +528,20 @@
    try{location.reload();}catch(e){}
   };
   r.readAsText(file);
+ }
+ const SUGGEST_URL='https://script.google.com/macros/s/AKfycbxZGgdw2Fl9SANxGGimizyIn0pm3LvgoYr1Hp9GNUaPfX_h2u3cjkTYR5RDdinZ0pLFvw/exec';
+ function openSuggest(){var sb=document.getElementById('sgBranch');if(sb)sb.textContent=branch||'-';var m=document.getElementById('sgMsg');if(m)m.textContent='';openModal('suggestModal');var t=document.getElementById('sgText');if(t)setTimeout(function(){t.focus();},50);}
+ function sendSuggestion(){
+  var t=document.getElementById('sgText'),text=(t.value||'').trim();
+  if(!text){var m0=document.getElementById('sgMsg');if(m0){m0.style.color='var(--danger)';m0.textContent='내용을 입력해주세요.';}return;}
+  var name=(document.getElementById('sgName').value||'').trim()||'익명';
+  var btn=document.getElementById('sgSend'),msg=document.getElementById('sgMsg');
+  btn.disabled=true;btn.textContent='보내는 중…';msg.style.color='var(--tx3)';msg.textContent='';
+  var payload=JSON.stringify({program:'근무관리표',branch:branch||'-',name:name,text:text});
+  fetch(SUGGEST_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:payload})
+   .then(function(){t.value='';msg.style.color='var(--duty)';msg.textContent='✓ 보냈습니다. 감사합니다!';setTimeout(function(){closeModal('suggestModal');},1400);})
+   .catch(function(){msg.style.color='var(--danger)';msg.textContent='전송 실패 — 인터넷 연결을 확인해주세요.';})
+   .then(function(){btn.disabled=false;btn.textContent='보내기';});
  }
  function fmtDt(iso){if(!iso)return '';const d=new Date(iso);const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
  function showSavedAt(){const el=document.getElementById('savedAtMsg');if(!el)return;el.textContent=S.savedAt?'마지막 저장: '+fmtDt(S.savedAt):'';}
@@ -1166,7 +1198,7 @@
  document.getElementById('resetBtn').onclick=resetCurrent;
  showSavedAt();renderSaveList();renderBranchTabs();
  document.getElementById('changeBranch').onclick=showLogin;
- (function(){var eb=document.getElementById('exportBtn');if(eb)eb.onclick=exportData;var ib=document.getElementById('importBtn'),ifl=document.getElementById('importFile');if(ib&&ifl){ib.onclick=function(){ifl.click();};ifl.onchange=function(){var f=ifl.files&&ifl.files[0];if(f)importData(f);ifl.value='';};}})();
+ (function(){var eb=document.getElementById('exportBtn');if(eb)eb.onclick=exportData;var ib=document.getElementById('importBtn'),ifl=document.getElementById('importFile');if(ib&&ifl){ib.onclick=function(){ifl.click();};ifl.onchange=function(){var f=ifl.files&&ifl.files[0];if(f)importData(f);ifl.value='';};}var sgb=document.getElementById('suggestBtn');if(sgb)sgb.onclick=openSuggest;var sgs=document.getElementById('sgSend');if(sgs)sgs.onclick=sendSuggestion;})();
  document.getElementById('loginPwBtn').onclick=submitLogin;
  document.getElementById('loginPwCancel').onclick=()=>document.getElementById('loginPwArea').classList.add('hide');
  document.getElementById('loginPwInput').onkeydown=e=>{if(e.key==='Enter')submitLogin();};
