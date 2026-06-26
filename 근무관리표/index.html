@@ -165,6 +165,10 @@
     <button class="btn" id="loginAddBtn">+ 추가</button>
     <button class="btn" id="loginEditToggle" style="font-size:12px">✏️ 이름 관리</button>
    </div>
+   <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+    <div class="sub" style="margin:0 0 6px">이미 쓰던 데이터(백업 파일)가 있나요?</div>
+    <button class="btn" id="loginRestoreBtn">📂 백업 파일에서 복원</button>
+   </div>
    <div id="loginPwArea" class="hide">
     <div id="loginPwTitle" style="font-weight:500;margin-bottom:6px"></div>
     <input type="password" inputmode="numeric" maxlength="4" id="loginPwInput" style="text-align:center;font-size:18px;letter-spacing:6px;width:150px">
@@ -440,7 +444,7 @@
    <div id="finalMxWrap" class="hide" style="overflow:auto"><div id="finalTable"></div></div>
   </div>
  </section>
- <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.1 (💬 건의하기[슬랙 알림] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
+ <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.2 (로그인 화면 백업복원[웹 이전 쉽게] · 💬 건의하기[슬랙 알림] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
 </div>
 
 <script>
@@ -524,6 +528,7 @@
    var when=data.exportedAt?(' (백업 시점: '+fmtDt(data.exportedAt)+')'):'';
    if(!confirm('백업을 불러오면 이 컴퓨터의 현재 데이터가 백업 내용으로 모두 덮어쓰여집니다.'+when+'\n지점 '+names.length+'개를 복원합니다.\n\n계속할까요?'))return;
    names.forEach(function(b){var bd=data.branches[b]||{};try{if(bd.state!=null)localStorage.setItem(stateKey(b),bd.state);if(bd.saves!=null)localStorage.setItem(savesKey(b),bd.saves);if(bd.pw!=null)localStorage.setItem(pwKey(b),bd.pw);}catch(e){}});
+   try{localStorage.setItem('geunmuBranchList',JSON.stringify(names));}catch(e){}
    alert('불러오기 완료! 화면을 새로고침합니다.');
    try{location.reload();}catch(e){}
   };
@@ -1208,6 +1213,7 @@
   if(ab)ab.onclick=doAdd;
   if(an)an.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();doAdd();}};
   if(et)et.onclick=function(){loginEditMode=!loginEditMode;et.textContent=loginEditMode?'✓ 완료':'✏️ 이름 관리';renderLoginBranches();};
+  var rb=document.getElementById('loginRestoreBtn'),ifl2=document.getElementById('importFile');if(rb&&ifl2)rb.onclick=function(){ifl2.click();};
  })();
  showLogin();
  save();
