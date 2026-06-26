@@ -160,21 +160,45 @@
    <h2 style="margin:0 0 4px">근무관리표 — 지점 선택</h2>
    <p class="sub" style="margin:0 0 4px">지점을 고르고 4자리 비밀번호를 입력하세요. (처음이면 새로 설정 · 보안용이 아닌 실수 방지용입니다)</p>
    <div id="loginBranches" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0"></div>
-   <div id="loginEmptyMsg" class="sub hide" style="margin:4px 0 8px;color:var(--info);font-weight:500">아직 등록된 지점이 없습니다. 아래에 이름을 적고 "+ 추가"를 누르세요.</div>
-   <div id="loginAddArea" style="margin:4px 0 6px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap">
-    <input type="text" id="loginAddName" placeholder="새 지점/기관 이름" style="width:170px;padding:7px 9px;border:1px solid var(--line2);border-radius:7px;font-size:14px">
-    <button class="btn" id="loginAddBtn">+ 추가</button>
+   <div id="loginEmptyMsg" class="sub hide" style="margin:4px 0 8px;color:var(--info);font-weight:500">아직 등록된 지점이 없습니다. 아래에 기관 이름과 4자리 비번을 적고 "지점 신청"을 누르세요. (관리자 승인 후 사용)</div>
+   <div id="loginAddArea" style="margin:4px 0 4px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap">
+    <input type="text" id="loginAddName" placeholder="새 지점/기관 이름" style="width:150px;padding:7px 9px;border:1px solid var(--line2);border-radius:7px;font-size:14px">
+    <input type="password" inputmode="numeric" maxlength="4" id="loginAddPw" placeholder="비번4자리" style="width:80px;padding:7px 9px;border:1px solid var(--line2);border-radius:7px;font-size:14px;text-align:center">
+    <button class="btn pri" id="loginAddBtn">지점 신청</button>
     <button class="btn" id="loginEditToggle" style="font-size:12px">✏️ 이름 관리</button>
    </div>
+   <div id="loginAddMsg" class="sub" style="margin:2px 0 6px;font-weight:500"></div>
    <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
     <div class="sub" style="margin:0 0 6px">이미 쓰던 데이터(백업 파일)가 있나요?</div>
     <button class="btn" id="loginRestoreBtn">📂 백업 파일에서 복원</button>
+    <div style="margin-top:8px"><button class="btn" id="loginAdminBtn" style="font-size:12px;color:var(--tx3)">🔧 관리자</button></div>
    </div>
    <div id="loginPwArea" class="hide">
     <div id="loginPwTitle" style="font-weight:500;margin-bottom:6px"></div>
     <input type="password" inputmode="numeric" maxlength="4" id="loginPwInput" style="text-align:center;font-size:18px;letter-spacing:6px;width:150px">
     <div style="margin-top:10px"><button class="btn pri" id="loginPwBtn">확인</button> <button class="btn" id="loginPwCancel">뒤로</button></div>
     <div id="loginPwMsg" class="sub" style="color:var(--danger);margin-top:6px"></div>
+   </div>
+  </div>
+ </div>
+
+ <div class="modal-ov hide" id="adminModal">
+  <div class="modal-box" style="max-width:540px">
+   <div class="modal-hd"><h2>🔧 관리자</h2><button class="btn" data-close="adminModal">닫기 ✕</button></div>
+   <div id="adminLoginArea">
+    <p class="sub" style="margin:0 0 8px">관리자 비밀번호를 입력하세요. (지점 신청 승인·전체 조회)</p>
+    <div class="row">
+     <input type="password" id="adminPw" placeholder="관리자 비밀번호" style="width:160px">
+     <button class="btn pri" id="adminLoginBtn">확인</button>
+     <span id="adminMsg" class="sub" style="margin:0;font-weight:500"></span>
+    </div>
+   </div>
+   <div id="adminPanel" class="hide">
+    <div style="font-weight:600;margin:4px 0 6px;color:var(--danger)">📥 신청 대기</div>
+    <div id="adminPending"></div>
+    <div style="font-weight:600;margin:14px 0 6px;color:var(--duty)">✅ 승인된 지점</div>
+    <div id="adminApproved"></div>
+    <div style="text-align:right;margin-top:10px"><button class="btn" id="adminRefresh">새로고침</button></div>
    </div>
   </div>
  </div>
@@ -445,7 +469,7 @@
    <div id="finalMxWrap" class="hide" style="overflow:auto"><div id="finalTable"></div></div>
   </div>
  </section>
- <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.4 (중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 누락필드 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
+ <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.5 (지점 신청·관리자 승인/조회 · 중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
 </div>
 
 <script>
@@ -544,8 +568,22 @@
  function centralPost(payload){return fetch(CENTRAL_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)}).then(function(r){return r.json();});}
  function inCentral(b){return centralBranches&&centralBranches.indexOf(b)>=0;}
  function setSync(state){var el=document.getElementById('syncBadge');if(!el)return;var m={save:['☁ 저장 중…','var(--tx3)'],ok:['☁ 중앙 저장됨','var(--duty)'],off:['⚠ 동기화 실패(로컬만)','var(--danger)']}[state]||['',''];el.textContent=m[0];el.style.color=m[1];}
- function scheduleCentralSave(){if(!branch||!inCentral(branch))return;if(centralSaveTimer)clearTimeout(centralSaveTimer);centralSaveTimer=setTimeout(centralSaveNow,4000);}
- function centralSaveNow(){if(!branch||!inCentral(branch))return;var pw=getPw(branch);if(!pw)return;setSync('save');centralPost({action:'save',branch:branch,pw:pw,data:JSON.stringify(S)}).then(function(res){setSync(res&&res.ok?'ok':'off');}).catch(function(){setSync('off');});}
+ function scheduleCentralSave(){if(adminViewMode||!branch||!inCentral(branch))return;if(centralSaveTimer)clearTimeout(centralSaveTimer);centralSaveTimer=setTimeout(centralSaveNow,4000);}
+ function centralSaveNow(){if(adminViewMode||!branch||!inCentral(branch))return;var pw=getPw(branch);if(!pw)return;setSync('save');centralPost({action:'save',branch:branch,pw:pw,data:JSON.stringify(S)}).then(function(res){setSync(res&&res.ok?'ok':'off');}).catch(function(){setSync('off');});}
+ // ===== 관리자 =====
+ let adminMaster='',adminViewMode=false;
+ function openAdmin(){var m=document.getElementById('adminMsg');if(m)m.textContent='';document.getElementById('adminPanel').classList.add('hide');document.getElementById('adminLoginArea').classList.remove('hide');document.getElementById('adminPw').value='';openModal('adminModal');setTimeout(function(){var p=document.getElementById('adminPw');if(p)p.focus();},50);}
+ function adminAuth(){var pw=(document.getElementById('adminPw').value||'').trim(),msg=document.getElementById('adminMsg');if(!pw){msg.style.color='var(--danger)';msg.textContent='비밀번호를 입력하세요';return;}msg.style.color='var(--tx3)';msg.textContent='확인 중…';centralPost({action:'admin_list',master:pw}).then(function(res){if(res&&res.ok){adminMaster=pw;msg.textContent='';document.getElementById('adminLoginArea').classList.add('hide');document.getElementById('adminPanel').classList.remove('hide');renderAdmin(res);}else{msg.style.color='var(--danger)';msg.textContent='관리자 비밀번호가 틀립니다';}}).catch(function(){msg.style.color='var(--danger)';msg.textContent='연결 실패 — 인터넷 확인';});}
+ function adminReload(){centralPost({action:'admin_list',master:adminMaster}).then(function(res){if(res&&res.ok)renderAdmin(res);});}
+ function renderAdmin(res){
+  var p=document.getElementById('adminPending'),a=document.getElementById('adminApproved');var pend=res.pending||[],appr=res.approved||[];
+  p.innerHTML='';a.innerHTML='';
+  if(!pend.length)p.innerHTML='<span class="sub" style="margin:0">대기 중인 신청이 없습니다.</span>';
+  pend.forEach(function(name){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)';var nm=document.createElement('span');nm.style.cssText='flex:1;font-weight:500';nm.textContent=name;row.appendChild(nm);var ok=document.createElement('button');ok.className='btn pri';ok.textContent='승인';ok.onclick=function(){centralPost({action:'admin_approve',master:adminMaster,name:name}).then(adminReload);};row.appendChild(ok);var no=document.createElement('button');no.className='btn';no.textContent='거절';no.onclick=function(){if(confirm('['+name+'] 신청을 거절(삭제)할까요?'))centralPost({action:'admin_reject',master:adminMaster,name:name}).then(adminReload);};row.appendChild(no);p.appendChild(row);});
+  if(!appr.length)a.innerHTML='<span class="sub" style="margin:0">승인된 지점이 없습니다.</span>';
+  appr.forEach(function(name){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)';var nm=document.createElement('span');nm.style.cssText='flex:1';nm.textContent=name;row.appendChild(nm);var v=document.createElement('button');v.className='btn';v.textContent='조회';v.onclick=function(){adminView(name);};row.appendChild(v);a.appendChild(row);});
+ }
+ function adminView(name){centralPost({action:'admin_view',master:adminMaster,branch:name}).then(function(res){if(!res||!res.ok){alert('조회 실패');return;}var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){}adminViewMode=true;branch=name;setBranch(name);S=normalize(data||JSON.parse(JSON.stringify(DEFAULT)));closeModal('adminModal');document.getElementById('loginOv').classList.add('hide');renderBranchTabs();refreshAll();var el=document.getElementById('syncBadge');if(el){el.textContent='👁 관리자 조회 (읽기전용)';el.style.color='var(--danger)';}});}
  function openSuggest(){var sb=document.getElementById('sgBranch');if(sb)sb.textContent=branch||'-';var m=document.getElementById('sgMsg');if(m)m.textContent='';openModal('suggestModal');var t=document.getElementById('sgText');if(t)setTimeout(function(){t.focus();},50);}
  function sendSuggestion(){
   var t=document.getElementById('sgText'),text=(t.value||'').trim();
@@ -1233,10 +1271,24 @@
  document.getElementById('loginPwCancel').onclick=()=>document.getElementById('loginPwArea').classList.add('hide');
  document.getElementById('loginPwInput').onkeydown=e=>{if(e.key==='Enter')submitLogin();};
  (function(){
-  var an=document.getElementById('loginAddName'),ab=document.getElementById('loginAddBtn'),et=document.getElementById('loginEditToggle');
-  function doAdd(){if(addBranchName(an.value)){an.value='';renderLoginBranches();}else if(an.value.trim()){alert('이미 있는 이름이거나 비어 있습니다.');}}
-  if(ab)ab.onclick=doAdd;
-  if(an)an.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();doAdd();}};
+  var an=document.getElementById('loginAddName'),pwI=document.getElementById('loginAddPw'),ab=document.getElementById('loginAddBtn'),et=document.getElementById('loginEditToggle'),amsg=document.getElementById('loginAddMsg');
+  function doRequest(){
+   var name=(an.value||'').trim(),pw=(pwI.value||'').trim();
+   if(!name){amsg.style.color='var(--danger)';amsg.textContent='기관/지점 이름을 입력하세요';return;}
+   if(!/^\d{4}$/.test(pw)){amsg.style.color='var(--danger)';amsg.textContent='비밀번호 4자리 숫자를 입력하세요';return;}
+   amsg.style.color='var(--tx3)';amsg.textContent='신청 중…';
+   centralPost({action:'request',name:name,pw:pw}).then(function(res){
+    if(res&&res.ok){amsg.style.color='var(--duty)';amsg.textContent='✓ 신청 완료! 관리자 승인 후 이 지점으로 로그인할 수 있어요.';an.value='';pwI.value='';}
+    else if(res&&res.error==='이미존재'){amsg.style.color='var(--danger)';amsg.textContent='이미 있는 이름이에요 (승인 대기 중이거나 사용 중일 수 있어요).';}
+    else{amsg.style.color='var(--danger)';amsg.textContent='오류: '+((res&&res.error)||'알수없음');}
+   }).catch(function(){if(addBranchName(name)){amsg.style.color='var(--duty)';amsg.textContent='(오프라인) 이 컴퓨터에만 추가했어요.';an.value='';pwI.value='';renderLoginBranches();}else{amsg.style.color='var(--danger)';amsg.textContent='신청 실패 — 인터넷 연결을 확인하세요';}});
+  }
+  if(ab)ab.onclick=doRequest;
+  if(pwI)pwI.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();doRequest();}};
+  var adb=document.getElementById('loginAdminBtn');if(adb)adb.onclick=openAdmin;
+  var alb=document.getElementById('adminLoginBtn');if(alb)alb.onclick=adminAuth;
+  var apw=document.getElementById('adminPw');if(apw)apw.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();adminAuth();}};
+  var arf=document.getElementById('adminRefresh');if(arf)arf.onclick=adminReload;
   if(et)et.onclick=function(){loginEditMode=!loginEditMode;et.textContent=loginEditMode?'✓ 완료':'✏️ 이름 관리';renderLoginBranches();};
   var rb=document.getElementById('loginRestoreBtn'),ifl2=document.getElementById('importFile');if(rb&&ifl2)rb.onclick=function(){ifl2.click();};
  })();
