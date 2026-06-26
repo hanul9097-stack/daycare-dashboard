@@ -1618,7 +1618,14 @@ function formatGongjiTs(ts) {
   return (d.getMonth()+1)+'/'+d.getDate()+'('+days[d.getDay()]+') '+p(d.getHours())+':'+p(d.getMinutes());
 }
 
+// 야간 정지: 19:00~07:59 발송 안 함(밤에 온 글은 ts 갱신 안 하고 보류→08시 첫 실행 때 모아 전달)
+function isQuietHours() {
+  var h = parseInt(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'H'), 10);
+  return (h >= 19 || h < 8);
+}
+
 function forwardGongji() {
+  if (isQuietHours()) return;          // 저녁7시~아침8시 발송 정지
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(2000)) return;     // 중복 실행 방지
   try {
@@ -1680,4 +1687,118 @@ function testForwardGongjiOne() {
   var out = '📢 *[본부 행정공지 — 전파 테스트]*  ·  ' + formatGongjiTs(m.ts) + '\n\n' + sanitizeGongji(m.text) + '\n\n🔗 <' + permalink + '|원문 보기>';
   postSlackMessage(BRANCH_CHANNELS['김소형'], out);   // 김제점
   Logger.log('✅ 테스트 전파 완료(김제점). 확인 후 installGongjiForwarder 실행하세요.');
+}
+
+// ─── 상담접수 자동전달 (03_상담접수내역_호남본부 → 요청센터로 라우팅) ──────────────────
+const SANGDAM_CHANNEL = 'C072N9JUSF5';   // 본사→본부 상담접수 소스 채널
+
+// 통합요양 센터장 Slack ID → 그 지점 채널 (그 외=주간보호 등은 개인 DM)
+function sangdamChannelMap() {
+  var map = {};
+  Object.keys(CENTER_MANAGER_IDS).forEach(function(center){
+    var uid = CENTER_MANAGER_IDS[center], name = CENTER_MANAGER_NAMES[center], ch = BRANCH_CHANNELS[name];
+    if (uid && ch) map[uid] = ch;
+  });
+  return map;
+}
+
+// "요청 센터/담당센터" 줄에서 담당자 @멘션 ID + 센터명 추출
+function parseSangdamTarget(text) {
+  var lines = String(text||'').split('\n');
+  for (var i=0;i<lines.length;i++){
+    var ln = lines[i];
+    if (ln.indexOf('요청 센터')!==-1 || ln.indexOf('요청센터')!==-1 || ln.indexOf('담당센터')!==-1 || ln.indexOf('담당 센터')!==-1) {
+      var mm = ln.match(/<@([UW][A-Z0-9]+)>/);
+      var name = ln.replace(/^[^:：]*[:：]/,'').replace(/<@[^>]+>/g,'').replace(/[•·]/g,'').trim();
+      return { uid: mm ? mm[1] : '', centerName: name };
+    }
+  }
+  return { uid:'', centerName:'' };
+}
+
+// 맨 윗줄 인사말 제거 + @핑/특수멘션 제거(글만 전달)
+function sanitizeSangdam(text) {
+  var t = String(text||'');
+  var idx = t.indexOf('•'); if (idx > 0) t = t.substring(idx);
+  return t.replace(/<!subteam\^[^>]+>/g,'')
+          .replace(/<!channel>/g,'').replace(/<!here>/g,'').replace(/<!everyone>/g,'')
+          .replace(/<@[UW][A-Z0-9]+>/g,'')
+          .replace(/\(\s*CC\.\s*\)/g,'')
+          .replace(/[ \t]+\n/g,'\n').trim();
+}
+
+function openDm(uid) {
+  try {
+    var r = UrlFetchApp.fetch('https://slack.com/api/conversations.open', { method:'post', headers:{Authorization:'Bearer '+SLACK_TOKEN}, payload:{users:uid}, muteHttpExceptions:true });
+    var d = JSON.parse(r.getContentText());
+    return (d.ok && d.channel) ? d.channel.id : '';
+  } catch(e){ return ''; }
+}
+
+function forwardSangdam() {
+  if (isQuietHours()) return;          // 저녁7시~아침8시 발송 정지
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(2000)) return;
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var lastTs = parseFloat(props.getProperty('LAST_SANGDAM_TS') || '0');
+    var res = UrlFetchApp.fetch('https://slack.com/api/conversations.history?channel='+SANGDAM_CHANNEL+'&limit=30', { headers:{Authorization:'Bearer '+SLACK_TOKEN}, muteHttpExceptions:true });
+    var data = JSON.parse(res.getContentText());
+    if (!data.ok) { Logger.log('상담채널 읽기 실패: '+data.error); return; }
+    var wsUrl=''; try { wsUrl = JSON.parse(UrlFetchApp.fetch('https://slack.com/api/auth.test',{headers:{Authorization:'Bearer '+SLACK_TOKEN},muteHttpExceptions:true}).getContentText()).url||''; } catch(e){}
+    var chMap = sangdamChannelMap();
+    var msgs = (data.messages||[]).filter(function(m){
+      if (parseFloat(m.ts) <= lastTs) return false;
+      if (m.type!=='message') return false;
+      if (m.subtype && m.subtype!=='bot_message') return false;
+      if (m.thread_ts && m.thread_ts!==m.ts) return false;
+      if (!String(m.text||'').trim()) return false;
+      return true;
+    }).sort(function(a,b){ return parseFloat(a.ts)-parseFloat(b.ts); });
+    if (!msgs.length) return;
+    var maxTs = lastTs, sent=0;
+    msgs.forEach(function(m){
+      var tgt = parseSangdamTarget(m.text);
+      if (tgt.uid) {
+        var permalink = wsUrl + 'archives/' + SANGDAM_CHANNEL + '/p' + String(m.ts).replace('.','');
+        var body = '📋 *[상담 접수 — ' + (tgt.centerName||'센터') + ']*  ·  ' + formatGongjiTs(m.ts)
+                 + '\n\n' + sanitizeSangdam(m.text) + '\n\n🔗 <' + permalink + '|원문 보기>';
+        var ch = chMap[tgt.uid];
+        if (ch) { postSlackMessage(ch, body); }                 // 통합요양 → 지점 채널
+        else    { var dm = openDm(tgt.uid); if (dm) postSlackMessage(dm, body); }   // 그 외 → 개인 DM
+        sent++; Utilities.sleep(300);
+      } else { Logger.log('대상 파싱 실패(전송 안 함) ts='+m.ts); }
+      if (parseFloat(m.ts) > maxTs) maxTs = parseFloat(m.ts);
+    });
+    props.setProperty('LAST_SANGDAM_TS', String(maxTs));
+    Logger.log('✅ 상담 전달 완료: '+sent+'건');
+  } finally { lock.releaseLock(); }
+}
+
+function installSangdamForwarder() {
+  ScriptApp.getProjectTriggers().forEach(function(tr){ if (tr.getHandlerFunction()==='forwardSangdam') ScriptApp.deleteTrigger(tr); });
+  var props = PropertiesService.getScriptProperties();
+  var res = UrlFetchApp.fetch('https://slack.com/api/conversations.history?channel='+SANGDAM_CHANNEL+'&limit=1', { headers:{Authorization:'Bearer '+SLACK_TOKEN}, muteHttpExceptions:true });
+  var data = JSON.parse(res.getContentText());
+  var baseTs = (data.ok && data.messages && data.messages.length) ? data.messages[0].ts : String(Date.now()/1000);
+  props.setProperty('LAST_SANGDAM_TS', String(baseTs));
+  ScriptApp.newTrigger('forwardSangdam').timeBased().everyMinutes(10).create();
+  Logger.log('✅ 상담 자동전달 설치 완료. 기준 ts='+baseTs+' 이후 새 상담부터 라우팅(10분 주기).');
+}
+function uninstallSangdamForwarder() {
+  var n=0; ScriptApp.getProjectTriggers().forEach(function(tr){ if (tr.getHandlerFunction()==='forwardSangdam'){ ScriptApp.deleteTrigger(tr); n++; } });
+  Logger.log('🛑 상담 자동전달 중지. 삭제 트리거 '+n+'개.');
+}
+// 안전 테스트: 최근 상담의 라우팅 결과만 로그(실제 전송 안 함)
+function testSangdamDryRun() {
+  var res = UrlFetchApp.fetch('https://slack.com/api/conversations.history?channel='+SANGDAM_CHANNEL+'&limit=10', { headers:{Authorization:'Bearer '+SLACK_TOKEN}, muteHttpExceptions:true });
+  var data = JSON.parse(res.getContentText());
+  var chMap = sangdamChannelMap(), revName = {};
+  Object.keys(CENTER_MANAGER_IDS).forEach(function(c){ revName[CENTER_MANAGER_IDS[c]] = CENTER_MANAGER_NAMES[c]; });
+  (data.messages||[]).filter(function(m){ return (!m.subtype||m.subtype==='bot_message') && String(m.text||'').trim(); }).slice(0,6).forEach(function(m){
+    var t = parseSangdamTarget(m.text);
+    var dest = !t.uid ? '❓대상없음(전송안함)' : (chMap[t.uid] ? ('지점채널('+(revName[t.uid]||'')+')') : ('개인DM '+t.uid+' (주간보호 등)'));
+    Logger.log('• "'+t.centerName+'" → '+dest);
+  });
+  Logger.log('— 위는 미리보기(실제 전송 안 함). 맞으면 installSangdamForwarder 실행.');
 }
