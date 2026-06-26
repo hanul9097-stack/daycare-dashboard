@@ -128,6 +128,7 @@
 
  <div class="card noprint" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px">
   <span style="font-weight:500;font-size:14px">현재 지점: <b id="curBranch" style="color:var(--info)"></b></span>
+  <span id="syncBadge" style="font-size:12px;font-weight:500"></span>
   <button class="btn" id="changeBranch">지점 변경 / 로그아웃</button>
   <span style="width:1px;height:20px;background:var(--line2)"></span>
   <button class="btn" id="exportBtn" title="모든 지점 데이터를 백업 파일 하나로 저장합니다">💾 전체 백업</button>
@@ -444,7 +445,7 @@
    <div id="finalMxWrap" class="hide" style="overflow:auto"><div id="finalTable"></div></div>
   </div>
  </section>
- <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.2 (로그인 화면 백업복원[웹 이전 쉽게] · 💬 건의하기[슬랙 알림] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
+ <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.3 (중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
 </div>
 
 <script>
@@ -496,7 +497,7 @@
  function setBranchList(arr){try{localStorage.setItem('geunmuBranchList',JSON.stringify(arr));}catch(e){}}
  function addBranchName(name){name=(name||'').trim();if(!name)return false;var list=getBranchList();if(list.indexOf(name)>=0)return false;list.push(name);setBranchList(list);return true;}
  function removeBranchName(name){setBranchList(getBranchList().filter(function(b){return b!==name;}));}
- function normalize(s){if(!s||typeof s!=='object')s=JSON.parse(JSON.stringify(DEFAULT));if(Array.isArray(s.songyeong)){s.song={main:s.songyeong.slice(),sub:[]};delete s.songyeong;}if(!s.song||typeof s.song!=='object')s.song={main:[],sub:[]};if(!Array.isArray(s.song.main))s.song.main=[];if(!Array.isArray(s.song.sub))s.song.sub=[];if(!s.force||typeof s.force!=='object')s.force={};if(!s.roster||typeof s.roster!=='object')s.roster=JSON.parse(JSON.stringify(DEFAULT.roster));var RMAP={'요양보호사':'돌봄요양팀','간호조무사':'간호요양팀','돌봄간호팀':'간호요양팀','조리원':'조리팀','보조원(운전사)':'운전원','사회복지사':'행정팀','사무원':'행정팀','센터장':'행정팀'};var ORDER=['행정팀','돌봄요양팀','간호요양팀','조리팀','운전원'];var nr={};ORDER.forEach(function(t){nr[t]=[];});Object.keys(s.roster).forEach(function(g){var t=RMAP[g]||g;if(!nr[t])nr[t]=[];(s.roster[g]||[]).forEach(function(n){if(nr[t].indexOf(n)<0)nr[t].push(n);});});s.roster=nr;if(RMAP[s.careTeam])s.careTeam=RMAP[s.careTeam];if(!s.roster[s.careTeam])s.careTeam='돌봄요양팀';if(!Array.isArray(s.satGroups))s.satGroups=['행정팀'];s.satGroups=s.satGroups.map(function(g){return RMAP[g]||g;}).filter(function(g,i,a){return s.roster[g]&&a.indexOf(g)===i;});if(!s.satGroups.length)s.satGroups=['행정팀'];if(!s.minTeam||typeof s.minTeam!=='object')s.minTeam={};['행정팀','돌봄요양팀','간호요양팀'].forEach(function(t){if(typeof s.minTeam[t]!=='number')s.minTeam[t]=0;});if(!s.minTeamSat||typeof s.minTeamSat!=='object')s.minTeamSat={};['행정팀','돌봄요양팀','간호요양팀'].forEach(function(t){if(typeof s.minTeamSat[t]!=='number')s.minTeamSat[t]=0;});if(typeof s.greetMinSat!=='number')s.greetMinSat=0;if(Array.isArray(s.dongseung)){s.dong={main:s.dongseung.slice(),sub:[]};delete s.dongseung;}if(!s.dong||typeof s.dong!=='object')s.dong={main:[],sub:[]};if(!Array.isArray(s.dong.main))s.dong.main=[];if(!Array.isArray(s.dong.sub))s.dong.sub=[];if(!Array.isArray(s.cars)){s.cars=[];var sm=s.song.main,ss=s.song.sub,dm=s.dong.main,ds=s.dong.sub,cn=Math.max(sm.length,ss.length,dm.length,ds.length);for(var ci=0;ci<cn;ci++)s.cars.push({no:'',type:'봉고차',drv:{main:sm[ci]||null,sub:ss[ci]||null},esc:{main:dm[ci]||null,sub:ds[ci]||null}});}s.cars.forEach(function(c){if(!c.drv||typeof c.drv!=='object')c.drv={main:null,sub:null};if(!c.esc||typeof c.esc!=='object')c.esc={main:null,sub:null};if(c.type!=='승용차')c.type='봉고차';if(typeof c.no!=='string')c.no='';if(!c.satMode)c.satMode=c.satOff?'off':(c.satOp?'same':'off');if(['off','same','custom'].indexOf(c.satMode)<0)c.satMode='off';if(!c.satDrv||typeof c.satDrv!=='object')c.satDrv={main:null,sub:null};if(!c.satEsc||typeof c.satEsc!=='object')c.satEsc={main:null,sub:null};delete c.satOp;delete c.satOff;});delete s.song;delete s.dong;if(typeof s.greetMin!=='number')s.greetMin=3;if(typeof s.fixedCount!=='number')s.fixedCount=4;if(typeof s.fixedAutoCalc!=='boolean')s.fixedAutoCalc=true;if(typeof s.designate!=='number')s.designate=0;if(typeof s.greetUse!=='boolean')s.greetUse=false;if(!s.payComp||typeof s.payComp!=='object'||Array.isArray(s.payComp))s.payComp={};if(!s.special||typeof s.special!=='object')s.special={};if(!Array.isArray(s.partTime))s.partTime=[];if(!Array.isArray(s.satExempt))s.satExempt=[];if(!Array.isArray(s.classes))s.classes=[];if(!s.empClass||typeof s.empClass!=='object')s.empClass={};if(!s.empRole||typeof s.empRole!=='object')s.empRole={};if(!s.joinDate||typeof s.joinDate!=='object')s.joinDate={};if(!s.fixedAuto||typeof s.fixedAuto!=='object')s.fixedAuto={};if(!s.month)s.month=DEFAULT.month;return s;}
+ function normalize(s){if(!s||typeof s!=='object')s=JSON.parse(JSON.stringify(DEFAULT));if(Array.isArray(s.songyeong)){s.song={main:s.songyeong.slice(),sub:[]};delete s.songyeong;}if(!s.song||typeof s.song!=='object')s.song={main:[],sub:[]};if(!Array.isArray(s.song.main))s.song.main=[];if(!Array.isArray(s.song.sub))s.song.sub=[];if(!s.force||typeof s.force!=='object')s.force={};if(!s.roster||typeof s.roster!=='object')s.roster=JSON.parse(JSON.stringify(DEFAULT.roster));var RMAP={'요양보호사':'돌봄요양팀','간호조무사':'간호요양팀','돌봄간호팀':'간호요양팀','조리원':'조리팀','보조원(운전사)':'운전원','사회복지사':'행정팀','사무원':'행정팀','센터장':'행정팀'};var ORDER=['행정팀','돌봄요양팀','간호요양팀','조리팀','운전원'];var nr={};ORDER.forEach(function(t){nr[t]=[];});Object.keys(s.roster).forEach(function(g){var t=RMAP[g]||g;if(!nr[t])nr[t]=[];(s.roster[g]||[]).forEach(function(n){if(nr[t].indexOf(n)<0)nr[t].push(n);});});s.roster=nr;if(RMAP[s.careTeam])s.careTeam=RMAP[s.careTeam];if(!s.roster[s.careTeam])s.careTeam='돌봄요양팀';if(!Array.isArray(s.satGroups))s.satGroups=['행정팀'];s.satGroups=s.satGroups.map(function(g){return RMAP[g]||g;}).filter(function(g,i,a){return s.roster[g]&&a.indexOf(g)===i;});if(!s.satGroups.length)s.satGroups=['행정팀'];if(!s.minTeam||typeof s.minTeam!=='object')s.minTeam={};['행정팀','돌봄요양팀','간호요양팀'].forEach(function(t){if(typeof s.minTeam[t]!=='number')s.minTeam[t]=0;});if(!s.minTeamSat||typeof s.minTeamSat!=='object')s.minTeamSat={};['행정팀','돌봄요양팀','간호요양팀'].forEach(function(t){if(typeof s.minTeamSat[t]!=='number')s.minTeamSat[t]=0;});if(typeof s.greetMinSat!=='number')s.greetMinSat=0;if(Array.isArray(s.dongseung)){s.dong={main:s.dongseung.slice(),sub:[]};delete s.dongseung;}if(!s.dong||typeof s.dong!=='object')s.dong={main:[],sub:[]};if(!Array.isArray(s.dong.main))s.dong.main=[];if(!Array.isArray(s.dong.sub))s.dong.sub=[];if(!Array.isArray(s.cars)){s.cars=[];var sm=s.song.main,ss=s.song.sub,dm=s.dong.main,ds=s.dong.sub,cn=Math.max(sm.length,ss.length,dm.length,ds.length);for(var ci=0;ci<cn;ci++)s.cars.push({no:'',type:'봉고차',drv:{main:sm[ci]||null,sub:ss[ci]||null},esc:{main:dm[ci]||null,sub:ds[ci]||null}});}s.cars.forEach(function(c){if(!c.drv||typeof c.drv!=='object')c.drv={main:null,sub:null};if(!c.esc||typeof c.esc!=='object')c.esc={main:null,sub:null};if(c.type!=='승용차')c.type='봉고차';if(typeof c.no!=='string')c.no='';if(!c.satMode)c.satMode=c.satOff?'off':(c.satOp?'same':'off');if(['off','same','custom'].indexOf(c.satMode)<0)c.satMode='off';if(!c.satDrv||typeof c.satDrv!=='object')c.satDrv={main:null,sub:null};if(!c.satEsc||typeof c.satEsc!=='object')c.satEsc={main:null,sub:null};delete c.satOp;delete c.satOff;});delete s.song;delete s.dong;if(typeof s.greetMin!=='number')s.greetMin=3;if(typeof s.fixedCount!=='number')s.fixedCount=4;if(typeof s.fixedAutoCalc!=='boolean')s.fixedAutoCalc=true;if(typeof s.designate!=='number')s.designate=0;if(typeof s.greetUse!=='boolean')s.greetUse=false;if(!s.payComp||typeof s.payComp!=='object'||Array.isArray(s.payComp))s.payComp={};if(!s.special||typeof s.special!=='object')s.special={};if(!Array.isArray(s.events))s.events=[];if(!Array.isArray(s.partTime))s.partTime=[];if(!Array.isArray(s.satExempt))s.satExempt=[];if(!Array.isArray(s.classes))s.classes=[];if(!s.empClass||typeof s.empClass!=='object')s.empClass={};if(!s.empRole||typeof s.empRole!=='object')s.empRole={};if(!s.joinDate||typeof s.joinDate!=='object')s.joinDate={};if(!s.fixedAuto||typeof s.fixedAuto!=='object')s.fixedAuto={};if(!s.month)s.month=DEFAULT.month;return s;}
  function getBranch(){let b=null;try{b=localStorage.getItem('geunmuBranch');}catch(e){}var list=getBranchList();if(!b||list.indexOf(b)<0)b=list[0]||'';return b;}
  function setBranch(b){try{localStorage.setItem('geunmuBranch',b);}catch(e){}}
  const stateKey=b=>'geunmuState::'+b;
@@ -507,7 +508,7 @@
  try{S=JSON.parse(localStorage.getItem(stateKey(branch)))||null;}catch(e){S=null;}
  if(!S)S=JSON.parse(JSON.stringify(DEFAULT));
  S=normalize(S);
- function save(){try{localStorage.setItem(stateKey(branch),JSON.stringify(S));}catch(e){}}
+ function save(){try{localStorage.setItem(stateKey(branch),JSON.stringify(S));}catch(e){}scheduleCentralSave();}
  function exportData(){
   try{save();}catch(e){}
   var data={app:'근무관리표',version:'4.8',exportedAt:new Date().toISOString(),branches:{}};
@@ -535,6 +536,16 @@
   r.readAsText(file);
  }
  const SUGGEST_URL='https://script.google.com/macros/s/AKfycbxZGgdw2Fl9SANxGGimizyIn0pm3LvgoYr1Hp9GNUaPfX_h2u3cjkTYR5RDdinZ0pLFvw/exec';
+ // ===== 중앙DB(구글시트+GAS) 연동 =====
+ const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
+ let centralBranches=null; // 중앙 승인 지점 목록(null=아직 못 받음 → 오프라인/로컬)
+ let centralSaveTimer=null;
+ function centralGet(action){return fetch(CENTRAL_URL+'?action='+encodeURIComponent(action)).then(function(r){return r.json();});}
+ function centralPost(payload){return fetch(CENTRAL_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)}).then(function(r){return r.json();});}
+ function inCentral(b){return centralBranches&&centralBranches.indexOf(b)>=0;}
+ function setSync(state){var el=document.getElementById('syncBadge');if(!el)return;var m={save:['☁ 저장 중…','var(--tx3)'],ok:['☁ 중앙 저장됨','var(--duty)'],off:['⚠ 동기화 실패(로컬만)','var(--danger)']}[state]||['',''];el.textContent=m[0];el.style.color=m[1];}
+ function scheduleCentralSave(){if(!branch||!inCentral(branch))return;if(centralSaveTimer)clearTimeout(centralSaveTimer);centralSaveTimer=setTimeout(centralSaveNow,4000);}
+ function centralSaveNow(){if(!branch||!inCentral(branch))return;var pw=getPw(branch);if(!pw)return;setSync('save');centralPost({action:'save',branch:branch,pw:pw,data:JSON.stringify(S)}).then(function(res){setSync(res&&res.ok?'ok':'off');}).catch(function(){setSync('off');});}
  function openSuggest(){var sb=document.getElementById('sgBranch');if(sb)sb.textContent=branch||'-';var m=document.getElementById('sgMsg');if(m)m.textContent='';openModal('suggestModal');var t=document.getElementById('sgText');if(t)setTimeout(function(){t.focus();},50);}
  function sendSuggestion(){
   var t=document.getElementById('sgText'),text=(t.value||'').trim();
@@ -564,7 +575,7 @@
  let loginEditMode=false;
  function renderLoginBranches(){
   const el=document.getElementById('loginBranches');if(!el)return;el.innerHTML='';
-  const list=getBranchList();
+  const local=getBranchList();const list=(centralBranches!==null)?centralBranches.concat(local.filter(function(b){return centralBranches.indexOf(b)<0;})):local;
   const empty=document.getElementById('loginEmptyMsg');if(empty)empty.classList.toggle('hide',list.length>0);
   list.forEach(b=>{
    const wrap=document.createElement('span');wrap.style.cssText='display:inline-flex;align-items:center';
@@ -573,9 +584,23 @@
    el.appendChild(wrap);
   });
  }
- function showLogin(){const ov=document.getElementById('loginOv');if(!ov)return;ov.classList.remove('hide');renderLoginBranches();document.getElementById('loginPwArea').classList.add('hide');}
+ function showLogin(){const ov=document.getElementById('loginOv');if(!ov)return;ov.classList.remove('hide');document.getElementById('loginPwArea').classList.add('hide');renderLoginBranches();centralGet('branches').then(function(res){if(res&&res.ok&&Array.isArray(res.branches)){centralBranches=res.branches;renderLoginBranches();}}).catch(function(){});}
  function startLogin(b){loginBranch=b;const has=!!getPw(b);document.getElementById('loginPwArea').classList.remove('hide');document.getElementById('loginPwTitle').textContent='['+b+'] '+(has?'비밀번호 입력 (4자리)':'새 비밀번호 설정 (숫자 4자리)');const inp=document.getElementById('loginPwInput');inp.value='';document.getElementById('loginPwMsg').textContent='';inp.focus();}
- function submitLogin(){const v=document.getElementById('loginPwInput').value.trim();const msg=document.getElementById('loginPwMsg');if(!/^\d{4}$/.test(v)){msg.textContent='숫자 4자리를 입력하세요';return;}const cur=getPw(loginBranch);if(!cur)setPw(loginBranch,v);else if(cur!==v){msg.textContent='비밀번호가 틀립니다';return;}if(loginBranch!==branch)switchBranch(loginBranch);else setBranch(loginBranch);renderBranchTabs();document.getElementById('loginOv').classList.add('hide');}
+ function submitLogin(){
+  const v=document.getElementById('loginPwInput').value.trim();const msg=document.getElementById('loginPwMsg');
+  if(!/^\d{4}$/.test(v)){msg.style.color='var(--danger)';msg.textContent='숫자 4자리를 입력하세요';return;}
+  const b=loginBranch;
+  function localLogin(){const cur=getPw(b);if(cur&&cur!==v){msg.style.color='var(--danger)';msg.textContent='비밀번호가 틀립니다';return false;}if(!cur)setPw(b,v);if(b!==branch)switchBranch(b);else setBranch(b);renderBranchTabs();msg.textContent='';document.getElementById('loginOv').classList.add('hide');return true;}
+  if(!inCentral(b)){localLogin();return;}
+  msg.style.color='var(--tx3)';msg.textContent='확인 중…';
+  centralPost({action:'load',branch:b,pw:v}).then(function(res){
+   if(res&&res.ok){setPw(b,v);if(b!==branch){save();setBranch(b);branch=b;}else setBranch(b);var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){data=null;}S=normalize(data||JSON.parse(JSON.stringify(DEFAULT)));if(centralSaveTimer)clearTimeout(centralSaveTimer);try{localStorage.setItem(stateKey(b),JSON.stringify(S));}catch(e){}renderBranchTabs();refreshAll();msg.textContent='';document.getElementById('loginOv').classList.add('hide');setSync('ok');}
+   else if(res&&res.error==='비번틀림'){msg.style.color='var(--danger)';msg.textContent='비밀번호가 틀립니다';}
+   else if(res&&res.error==='승인대기중'){msg.style.color='var(--danger)';msg.textContent='아직 승인되지 않은 지점입니다 (관리자 승인 대기)';}
+   else if(res&&res.error==='없는지점'){msg.style.color='var(--danger)';msg.textContent='등록되지 않은 지점입니다';}
+   else{msg.style.color='var(--danger)';msg.textContent='오류: '+((res&&res.error)||'알수없음');}
+  }).catch(function(){if(localLogin())setTimeout(function(){alert('⚠ 인터넷 연결이 없어 이 컴퓨터의 마지막 저장본으로 열었습니다. 연결 후 다시 로그인하면 최신본을 받아옵니다.');},200);});
+ }
  function switchBranch(b){if(b===branch)return;save();setBranch(b);branch=b;let ns=null;try{ns=JSON.parse(localStorage.getItem(stateKey(b)));}catch(e){ns=null;}S=normalize(ns||JSON.parse(JSON.stringify(DEFAULT)));save();refreshAll();}
  function resetCurrent(){if(!confirm('['+branch+'] 지점의 입력 내용을 기본값으로 초기화할까요? (저장본은 유지됩니다)'))return;S=normalize(JSON.parse(JSON.stringify(DEFAULT)));save();refreshAll();}
  function generateSchedule(){
