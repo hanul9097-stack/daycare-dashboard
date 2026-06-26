@@ -1,8 +1,7 @@
 // ─── 호남본부 통합요양 대시보드 ───────────────────────────────────────────────
 
 const WORK_PLAN_IDS = [
-  // TODO: 이흥덕 업무계획 스프레드시트 ID를 여기에 추가하세요
-  // 예: '1aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890abcdef'
+'1n4RjuucmC2Vkg-yXd-MlFt1mp3_D_gb6-vXrDL4yJ9c'
 ];
 
 const MEMBER_SS_MAP = {};
@@ -30,12 +29,13 @@ const NAME_MAP = {
 };
 const MEMBER_NAMES  = ['이흥덕', '김소형', '윤연임', '정혜인', '김미란', '임현숙'];
 
-// 연장근무도 업무계획과 같은 스프레드시트(연장근무_입력 탭)를 사용
+// TODO: 연장근무 스프레드시트 ID를 입력하세요
 const OVERTIME_ID = WORK_PLAN_IDS[0];
 
 const SLACK_TOKEN = PropertiesService.getScriptProperties().getProperty('SLACK_TOKEN');
 const SLACK_CHANNEL_LEADER  = 'C07V8TEHPT9';  // 01_호남본부_주간_요양_리더채널
 const SLACK_CHANNEL_MANAGER = 'C0B834BD9H6';  // 01_호남본부_매니져방
+const OT_MANAGER_ID = 'U06224BG1PH';          // 이흥덕[호남본부_통합요양] — 매니져방에서 이 분 글만 발췌
 
 const CAATS_API_KEY  = PropertiesService.getScriptProperties().getProperty('CAATS_API_KEY');
 const CAATS_API_BASE = 'https://cms-api.caring.co.kr';
@@ -60,13 +60,13 @@ const DEPT_ALIAS = {
   '김제점':         ['김제센터'],
 };
 
-// 호남 센터 담당 지점장 Slack User ID
+// 호남 센터 담당자 Slack User ID (확인 후 채워주세요)
 const CENTER_MANAGER_IDS = {
-  '광주 병설 봄날점': 'U08PGHM83L7',  // 정혜인
-  '광주 호남점':     'U069PFYBLG7',  // 김미란(호남센터 센터장)
-  '여수방문점':      'U0822MC1N68',  // 윤연임
-  '군산 병설 방문점': 'U09A6SS0P62',  // 임현숙
-  '김제점':         'U07KDSE5ZMK',  // 김소형
+  '광주 병설 봄날점': 'U08PGHM83L7',
+  '광주 호남점':     'U069PFYBLG7',
+  '여수방문점':      'U0822MC1N68',
+  '군산 병설 방문점': 'U09A6SS0P62',
+  '김제점':         'U07KDSE5ZMK',
 };
 const CENTER_MANAGER_NAMES = {
   '광주 병설 봄날점': '정혜인',
@@ -137,7 +137,7 @@ function doGet(e) {
   if (action === 'overtime') return withCache('hn_overtime', 300, () => getOvertimeData());
   if (action === 'slack')    return withCache('hn_slack',    180, () => getSlackMessages());
   if (action === 'recruit')  return withCache('hn_recruit',  600, () => getRecruitData());
-  if (action === 'otApprove') return otApproveResponse(e.parameter.id);
+    if (action === 'otApprove') return otApproveResponse(e.parameter.id);
 
   if (action === 'debugOvertime')    return debugOvertimeResponse();
   if (action === 'debugWork')        return debugContentResponse();
@@ -150,58 +150,26 @@ function doGet(e) {
 
 // ─── 업무계획 ─────────────────────────────────────────────────────────────────
 
-// ─── 업무계획 입력 탭 생성 (Slack 워크플로우 연동용, 1회 실행) ───
-function createWorkflowInputSheet() {
-  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS가 비어있습니다. 먼저 채워주세요.'); return; }
-  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
-  let sheet = ss.getSheetByName('업무계획_입력');
-  if (!sheet) sheet = ss.insertSheet('업무계획_입력', 0);
-  else { ss.setActiveSheet(sheet); ss.moveActiveSheet(1); }
-  sheet.clear();
-  sheet.getRange('A1:C1').setValues([['담당자', '업무날짜', '업무내용']])
-       .setFontWeight('bold').setBackground('#a5d6a7').setHorizontalAlignment('center');
-  sheet.setColumnWidth(1, 100); sheet.setColumnWidth(2, 120); sheet.setColumnWidth(3, 560);
-  sheet.setFrozenRows(1);
-  Logger.log('✅ "업무계획_입력" 탭 생성 완료.');
-  Logger.log('Slack 워크플로우 "스프레드시트 행 추가" 단계에서 이 탭을 대상으로, 열을 A=담당자 / B=업무날짜 / C=업무내용 으로 매핑하세요.');
-}
-
-// ─── 업무계획 읽기 (업무계획_입력 탭 기반) ───
 function getMembersWork(today) {
-  const tz          = Session.getScriptTimeZone();
-  const tomorrow    = getNextWeekday(today);
-  const todayStr    = Utilities.formatDate(today,    tz, 'yyyy-MM-dd');
-  const tomorrowStr = Utilities.formatDate(tomorrow, tz, 'yyyy-MM-dd');
-  const result = {};
-  MEMBER_NAMES.forEach(n => result[n] = { name: n, todayWork: '', tomorrowWork: '' });
-
-  function normDate(v) {
-    if (v instanceof Date) return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
-    const s = String(v).trim();
-    const m = s.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
-    if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
-    return s;
-  }
-
+  const tomorrow  = getNextWeekday(today);
+  const resultMap = {};
   for (const ssId of WORK_PLAN_IDS) {
     try {
-      const ss    = SpreadsheetApp.openById(ssId);
-      const sheet = ss.getSheetByName('업무계획_입력');
-      if (!sheet || sheet.getLastRow() < 2) continue;
-      const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
-      // 위에서 아래로 적용 → 같은 담당자·날짜 재입력 시 나중(최신) 행이 덮어씀
-      rows.forEach(r => {
-        const name    = NAME_MAP[String(r[0]).trim()] || String(r[0]).trim();
-        if (!result[name]) return;
-        const content = String(r[2] || '').trim();
-        if (!content) return;
-        const dStr = normDate(r[1]);
-        if      (dStr === todayStr)    result[name].todayWork    = content;
-        else if (dStr === tomorrowStr) result[name].tomorrowWork = content;
-      });
+      const ss = SpreadsheetApp.openById(ssId);
+      for (const sheet of ss.getSheets()) {
+        const rawName = sheet.getName();
+        const name    = NAME_MAP[rawName] || rawName;
+        if (!MEMBER_NAMES.includes(name)) continue;
+        if (MEMBER_SS_MAP[name] && MEMBER_SS_MAP[name] !== ssId) continue;
+        const todayWork    = getTodayWork(sheet, today);
+        const tomorrowWork = getTodayWork(sheet, tomorrow);
+        if (!resultMap[name]) {
+          resultMap[name] = { name, todayWork: todayWork || '', tomorrowWork: tomorrowWork || '' };
+        }
+      }
     } catch(e) {}
   }
-  return Object.values(result);
+  return Object.values(resultMap);
 }
 
 function getTodayWork(sheet, today) {
@@ -281,171 +249,33 @@ function getTodayWork(sheet, today) {
 
 // ─── 연장근무 ─────────────────────────────────────────────────────────────────
 
-// ─── 연장근무: 승인 DM/링크용 웹앱 URL + 날짜 변환 ───
-const WEBAPP_URL = 'https://script.google.com/a/macros/caring.co.kr/s/AKfycbwd_7QEADb_TQhSgrfG88uRvCImMls-feHGKRIsAfImcyjDwiw0z7c4-DzLQ-EEFikD4g/exec';
-
-function otFmtDate(v) {
-  if (v === '' || v == null) return '';
-  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  if (typeof v === 'number') return Utilities.formatDate(new Date(Math.round((v - 25569) * 86400000)), 'GMT', 'yyyy-MM-dd');
-  const m = String(v).trim().match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
-  return m ? m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2) : String(v).trim();
-}
-
-// ─── 연장근무 입력 탭 생성 (1회 실행) ───
-// 열: A센터 B담당자 C신청일 D시간대 E연장시간 F사유 G승인한시간 H승인 I신청ID J승인자
-function createOvertimeInputSheet() {
-  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS가 비어있습니다.'); return; }
-  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
-  let sheet = ss.getSheetByName('연장근무_입력');
-  if (!sheet) sheet = ss.insertSheet('연장근무_입력', 1);
-  sheet.clear();
-  sheet.getRange(1, 1, sheet.getMaxRows(), 10).clearDataValidations();
-  const headers = ['센터', '담당자', '연장근로신청일', '근로시간대', '연장근로시간', '신청사유', '승인한시간', '승인', '신청ID', '승인자'];
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
-       .setFontWeight('bold').setBackground('#a5d6a7').setHorizontalAlignment('center');
-  [140, 90, 120, 110, 100, 280, 130, 60, 40, 110].forEach((w, i) => sheet.setColumnWidth(i + 1, w));
-  sheet.hideColumns(9);
-  sheet.setFrozenRows(1);
-  const maxR = sheet.getMaxRows();
-  if (maxR > 50) sheet.deleteRows(51, maxR - 50);
-  Logger.log('✅ "연장근무_입력" 탭(10열) 생성. 워크플로우 매핑 A~F. 신청은 2행부터 쌓임.');
-}
-
-// ─── 새 신청 처리: 체크박스 부여 + 날짜정리 + 지점장 승인 DM (onChange 트리거) ───
-function onOvertimeChange() {
-  try {
-    const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
-    const sheet = ss.getSheetByName('연장근무_입력');
-    if (!sheet) return;
-    const last = sheet.getLastRow();
-    if (last < 2) return;
-    sheet.getRange(2, 8, last - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
-    const data = sheet.getRange(2, 1, last - 1, 10).getValues();
-    for (let i = 0; i < data.length; i++) {
-      const r = data[i], row = i + 2;
-      const name = String(r[1] || '').trim(), center = String(r[0] || '').trim(), id = String(r[8] || '').trim();
-      if (!name || id) continue;
-      const niceDate = otFmtDate(r[2]);
-      if (niceDate && niceDate !== String(r[2])) sheet.getRange(row, 3).setValue(niceDate);
-      const newId = Utilities.getUuid();
-      sheet.getRange(row, 9).setValue(newId);
-      sendOvertimeApprovalDM(center, name, r, newId);
-    }
-  } catch (e) {}
-}
-
-// ─── 담당 지점장에게 승인 요청 DM (승인 링크 포함) ───
-function sendOvertimeApprovalDM(center, name, r, id) {
-  try {
-    const mgr = CENTER_MANAGER_IDS[center]; if (!mgr) return;
-    const op = UrlFetchApp.fetch('https://slack.com/api/conversations.open', { method: 'post', headers: { Authorization: 'Bearer ' + SLACK_TOKEN }, payload: { users: mgr }, muteHttpExceptions: true });
-    const ch = (JSON.parse(op.getContentText()).channel || {}).id; if (!ch) return;
-    const date = otFmtDate(r[2]);
-    const url = WEBAPP_URL + '?action=otApprove&id=' + id;
-    const txt = '🕐 *연장근무 승인 요청*\n*센터:* ' + center + '\n*담당자:* ' + name + '\n*일자:* ' + date + '   *시간대:* ' + (r[3] || '') + ' (' + (r[4] || '') + ')\n*사유:* ' + (r[5] || '') + '\n\n👉 <' + url + '|✅ 승인하기>';
-    UrlFetchApp.fetch('https://slack.com/api/chat.postMessage', { method: 'post', headers: { Authorization: 'Bearer ' + SLACK_TOKEN, 'Content-Type': 'application/json' }, payload: JSON.stringify({ channel: ch, text: txt }), muteHttpExceptions: true });
-  } catch (e) {}
-}
-
-// ─── 승인 체크 시 승인한시간·승인자 자동 기록 (onEdit 트리거) ───
-function onOvertimeEdit(e) {
-  try {
-    const sh = e.range.getSheet();
-    if (sh.getName() !== '연장근무_입력') return;
-    if (e.range.getColumn() !== 8) return;
-    const row = e.range.getRow();
-    if (row < 2) return;
-    const stamp = sh.getRange(row, 7);
-    if (e.range.getValue() === true) {
-      if (!stamp.getValue()) stamp.setValue(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'));
-      const who = (e.user && e.user.getEmail && e.user.getEmail()) || '';
-      if (who) sh.getRange(row, 10).setValue(who);
-    } else { stamp.clearContent(); sh.getRange(row, 10).clearContent(); }
-  } catch (err) {}
-}
-
-// ─── 승인 트리거 설치 (1회 실행) ───
-function installOvertimeApprovalTrigger() {
-  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS가 비어있습니다.'); return; }
-  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
-  ScriptApp.getProjectTriggers()
-    .filter(t => ['onOvertimeEdit', 'onOvertimeChange'].includes(t.getHandlerFunction()))
-    .forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('onOvertimeEdit').forSpreadsheet(ss).onEdit().create();
-  ScriptApp.newTrigger('onOvertimeChange').forSpreadsheet(ss).onChange().create();
-  Logger.log('✅ 트리거 설치: onEdit + onChange');
-}
-
-// ─── 연장근무 읽기 (연장근무_입력 탭 기반) ───
 function getOvertimeData() {
   try {
-    const ss = SpreadsheetApp.openById(OVERTIME_ID);
-    const sheet = ss.getSheetByName('연장근무_입력');
-    if (!sheet || sheet.getLastRow() < 2) return { rows: [] };
-    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
-    const rows = [];
-    data.forEach(r => {
-      const name = String(r[1] || '').trim();
-      if (!name) return;
-      const d = otFmtDate(r[2]);
-      rows.push({
-        _sheetName: String(r[0] || '').trim() || '기타',
-        '담당자': name, '연장근로신청일': d,
-        '근로시간대': String(r[3] || '').trim(), '연장근로시간': String(r[4] || '').trim(),
-        '신청사유': String(r[5] || '').trim(), '승인한시간': otFmtDate(r[6]),
-        '승인자': String(r[9] || '').trim(), id: String(r[8] || '').trim(),
-        '취소여부': '', '월': d ? d.substring(0, 7) : ''
-      });
-    });
-    return { rows };
-  } catch (e) { return { rows: [], error: e.message }; }
-}
-
-// ─── DM 링크 승인 처리 (doGet?action=otApprove&id=...) ───
-function otApproveResponse(id) {
-  try {
-    if (!id) return otHtml('잘못된 요청', '', '', true);
-    const sheet = SpreadsheetApp.openById(OVERTIME_ID).getSheetByName('연장근무_입력');
-    const last = sheet.getLastRow(); if (last < 2) return otHtml('신청을 찾을 수 없음', '', '', true);
-    const data = sheet.getRange(2, 1, last - 1, 10).getValues();
-    for (let i = 0; i < data.length; i++) {
-      if (String(data[i][8]).trim() === String(id).trim()) {
-        const row = i + 2, center = String(data[i][0] || '').trim(), name = String(data[i][1] || '').trim();
-        if (data[i][6]) return otHtml('이미 승인된 신청입니다', name, center, true);
-        sheet.getRange(row, 7).setValue(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'));
-        sheet.getRange(row, 8).setValue(true);
-        sheet.getRange(row, 10).setValue(CENTER_MANAGER_NAMES[center] || (center + ' 지점장'));
-        try { CacheService.getScriptCache().remove('hn_overtime'); } catch (e) {}
-        return otHtml('✅ 승인 완료되었습니다', name, center, false);
+    const ss  = SpreadsheetApp.openById(OVERTIME_ID);
+    const tz  = ss.getSpreadsheetTimeZone() || 'Asia/Seoul';
+    const allRows = [];
+    for (const sheet of ss.getSheets()) {
+      const sheetName = sheet.getName();
+      const data      = sheet.getDataRange().getValues();
+      if (data.length < 2) continue;
+      let headerRowIdx = -1;
+      for (let r = 0; r < Math.min(10, data.length); r++) {
+        if (data[r].some(c => normalizeKey(String(c)) === '담당자')) { headerRowIdx = r; break; }
+      }
+      if (headerRowIdx === -1) continue;
+      const headers = data[headerRowIdx].map(h => normalizeKey(String(h)));
+      for (let r = headerRowIdx + 1; r < data.length; r++) {
+        const row = { _sheetName: sheetName };
+        headers.forEach((h, i) => {
+          let v = data[r][i];
+          if (v instanceof Date) v = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+          row[h] = v;
+        });
+        if (row['담당자']) allRows.push(row);
       }
     }
-    return otHtml('신청을 찾을 수 없습니다 (이미 처리/삭제)', '', '', true);
-  } catch (e) { return otHtml('오류: ' + e.message, '', '', true); }
-}
-
-function otHtml(msg, name, center, already) {
-  return HtmlService.createHtmlOutput('<div style="font-family:sans-serif;text-align:center;padding:48px 24px;"><div style="font-size:44px;">' + (already ? '☑️' : '✅') + '</div><h2 style="margin:12px 0;">' + msg + '</h2>' + (name ? ('<p style="color:#555;">' + center + ' · ' + name + ' 연장근무</p>') : '') + '<p style="color:#999;font-size:13px;">이 창은 닫으셔도 됩니다.</p></div>');
-}
-
-// ─── 대시보드 승인 버튼 처리 (google.script.run) ───
-function clientApproveOvertime(id, approverName) {
-  try {
-    const sheet = SpreadsheetApp.openById(OVERTIME_ID).getSheetByName('연장근무_입력');
-    const last = sheet.getLastRow(); if (last < 2) return { ok: false, error: 'no data' };
-    const data = sheet.getRange(2, 1, last - 1, 10).getValues();
-    for (let i = 0; i < data.length; i++) {
-      if (String(data[i][8]).trim() === String(id).trim()) {
-        const row = i + 2;
-        sheet.getRange(row, 7).setValue(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'));
-        sheet.getRange(row, 8).setValue(true);
-        sheet.getRange(row, 10).setValue(approverName || '대시보드 승인');
-        try { CacheService.getScriptCache().remove('hn_overtime'); } catch (e) {}
-        return { ok: true };
-      }
-    }
-    return { ok: false, error: 'not found' };
-  } catch (e) { return { ok: false, error: e.message }; }
+    return { rows: allRows };
+  } catch(e) { return { rows: [], error: e.message }; }
 }
 
 // ─── Slack (두 채널) ──────────────────────────────────────────────────────────
@@ -471,6 +301,7 @@ function fetchSlackChannel(channelId) {
         .filter(m => m.type === 'message' && !m.subtype)
         .map(m => ({
           text:       m.text || '',
+          user:       m.user || '',
           ts:         m.ts,
           replyCount: m.reply_count || 0,
           done:       (m.reactions || []).some(r =>
@@ -483,10 +314,46 @@ function fetchSlackChannel(channelId) {
 }
 
 function getSlackMessages() {
-  return {
-    leader:  fetchSlackChannel(SLACK_CHANNEL_LEADER),
-    manager: fetchSlackChannel(SLACK_CHANNEL_MANAGER),
-  };
+  const care = getCareFilter();
+  const issue = getIssueKeywords();                 // 좁은 이슈 키워드(사고·민원·해지·항의·중단·긴급·시정·분쟁)
+  function hasIssue(t){ return issue.some(function(k){ return t.indexOf(k)!==-1; }); }
+  function filt(ch, fn) { if (!ch || ch.error) return ch || { messages: [] }; return { messages: (ch.messages || []).filter(fn) }; }
+  // 리더채널: 통합요양 관련(care 포함AND제외) + 이슈 키워드
+  const leader = filt(fetchSlackChannel(SLACK_CHANNEL_LEADER), function(m){ var t=String(m.text||''); return care.include.some(function(k){return t.indexOf(k)!==-1;}) && !care.exclude.some(function(k){return t.indexOf(k)!==-1;}) && hasIssue(t); });
+  // 지점소통: 이슈 키워드
+  const notice = filt(fetchSlackChannel(NOTICE_CHANNEL), function(m){ return hasIssue(String(m.text||'')); });
+  // 매니져방: 이흥덕(통합요양 매니저) 작성 + 이슈 키워드
+  const manager = filt(fetchSlackChannel(SLACK_CHANNEL_MANAGER), function(m){ return m.user === OT_MANAGER_ID && hasIssue(String(m.text||'')); });
+  return { leader: leader, manager: manager, notice: notice };
+}
+
+const DEFAULT_CARE_INCLUDE = ['통합요양','방문요양','구인','송영','방문','어르신'];
+const DEFAULT_CARE_EXCLUDE = ['주간보호','데이케어','주야간','등하원'];
+function getCareFilter() {
+  try {
+    var sheet = SpreadsheetApp.openById(WORK_PLAN_IDS[0]).getSheetByName('통합요양키워드');
+    if (sheet && sheet.getLastRow() >= 2) {
+      var data = sheet.getRange(2,1,sheet.getLastRow()-1,2).getValues();
+      var inc = data.map(function(r){return String(r[0]||'').trim();}).filter(Boolean);
+      var exc = data.map(function(r){return String(r[1]||'').trim();}).filter(Boolean);
+      if (inc.length) return { include: inc, exclude: exc };
+    }
+  } catch(e){}
+  return { include: DEFAULT_CARE_INCLUDE, exclude: DEFAULT_CARE_EXCLUDE };
+}
+function createCareKeywordSheet() {
+  var ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  var sheet = ss.getSheetByName('통합요양키워드');
+  if (!sheet) sheet = ss.insertSheet('통합요양키워드');
+  if (sheet.getLastRow() < 1) {
+    sheet.getRange(1,1,1,2).setValues([['포함단어','제외단어']]).setFontWeight('bold').setBackground('#a5d6a7');
+    var n = Math.max(DEFAULT_CARE_INCLUDE.length, DEFAULT_CARE_EXCLUDE.length);
+    var rows = [];
+    for (var i=0;i<n;i++) rows.push([DEFAULT_CARE_INCLUDE[i]||'', DEFAULT_CARE_EXCLUDE[i]||'']);
+    sheet.getRange(2,1,n,2).setValues(rows);
+    sheet.setColumnWidth(1,120); sheet.setColumnWidth(2,120); sheet.setFrozenRows(1);
+  }
+  Logger.log('통합요양키워드 탭 준비 완료 (A=포함, B=제외). 행 추가하면 필터 반영.');
 }
 
 // ─── CAATS 인증 ───────────────────────────────────────────────────────────────
@@ -1166,3 +1033,651 @@ function clearCache() {
 }
 
 function testSlack() { Logger.log(JSON.stringify(getSlackMessages())); }
+// ─── 업무계획 입력 탭 생성 (1회 실행) ───
+function createWorkflowInputSheet() {
+  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS가 비어있습니다.'); return; }
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('업무계획_입력');
+  if (!sheet) sheet = ss.insertSheet('업무계획_입력', 0);
+  else { ss.setActiveSheet(sheet); ss.moveActiveSheet(1); }
+  sheet.clear();
+  sheet.getRange('A1:C1').setValues([['담당자', '업무날짜', '업무내용']])
+       .setFontWeight('bold').setBackground('#a5d6a7').setHorizontalAlignment('center');
+  sheet.setColumnWidth(1, 100); sheet.setColumnWidth(2, 120); sheet.setColumnWidth(3, 560);
+  sheet.setFrozenRows(1);
+  Logger.log('✅ "업무계획_입력" 탭 생성 완료. 워크플로우 행추가 대상으로 A=담당자/B=업무날짜/C=업무내용 매핑.');
+}
+
+// ─── 업무계획 읽기 (업무계획_입력 탭 기반) ───
+function getMembersWork(today) {
+  const tz = Session.getScriptTimeZone();
+  const dow = today.getDay();
+  const monday = new Date(today); monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+  const weekDates = [];
+  for (let i = 0; i < 7; i++) { const d = new Date(monday); d.setDate(monday.getDate() + i); weekDates.push(Utilities.formatDate(d, tz, 'yyyy-MM-dd')); }
+  const todayStr = Utilities.formatDate(today, tz, 'yyyy-MM-dd');
+  const result = {};
+  MEMBER_NAMES.forEach(n => result[n] = { name: n, week: {}, todayWork: '', tomorrowWork: '' });
+  function normDate(v) {
+    if (v instanceof Date) return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+    const s = String(v).trim();
+    const m = s.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+    if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+    return s;
+  }
+  for (const ssId of WORK_PLAN_IDS) {
+    try {
+      const ss = SpreadsheetApp.openById(ssId);
+      const sheet = ss.getSheetByName('업무계획_입력');
+      if (!sheet || sheet.getLastRow() < 2) continue;
+      const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
+      rows.forEach(r => {
+        const name = NAME_MAP[String(r[0]).trim()] || String(r[0]).trim();
+        if (!result[name]) return;
+        const content = String(r[2] || '').trim();
+        if (!content) return;
+        const dStr = normDate(r[1]);
+        if (weekDates.indexOf(dStr) !== -1) result[name].week[dStr] = content;
+      });
+    } catch(e) {}
+  }
+  MEMBER_NAMES.forEach(n => { result[n].todayWork = result[n].week[todayStr] || ''; });
+  return Object.values(result);
+}
+// ─── 연장근무 입력 탭 생성 (1회 실행) ───
+function createOvertimeInputSheet() {
+  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS가 비어있습니다.'); return; }
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('연장근무_입력');
+  if (!sheet) sheet = ss.insertSheet('연장근무_입력', 1);
+  sheet.clear();
+  const headers = ['센터', '담당자', '연장근로신청일', '근로시간대', '연장근로시간', '신청사유', '승인한시간'];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+       .setFontWeight('bold').setBackground('#a5d6a7').setHorizontalAlignment('center');
+  [140, 90, 120, 110, 100, 320, 110].forEach((w, i) => sheet.setColumnWidth(i + 1, w));
+  sheet.setFrozenRows(1);
+  Logger.log('✅ "연장근무_입력" 탭 생성 완료. 매핑: A=센터 B=담당자 C=신청일 D=시간대 E=연장시간 F=사유 (G=승인은 수기)');
+}
+
+// ─── 연장근무 읽기 (연장근무_입력 탭 기반) ───
+function getOvertimeData() {
+  try {
+    const ss = SpreadsheetApp.openById(OVERTIME_ID);
+    const tz = ss.getSpreadsheetTimeZone() || 'Asia/Seoul';
+    const sheet = ss.getSheetByName('연장근무_입력');
+    if (!sheet || sheet.getLastRow() < 2) return { rows: [] };
+    function fmt(v) {
+      if (v === '' || v === null || v === undefined) return '';
+      if (v instanceof Date) return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+      const s = String(v).trim();
+      const m = s.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+      if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+      return s;
+    }
+    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 7).getValues();
+    const rows = [];
+    data.forEach(r => {
+      const name = String(r[1] || '').trim();
+      if (!name) return;
+      const applyDate = fmt(r[2]);
+      rows.push({
+        _sheetName: String(r[0] || '').trim() || '기타',
+        '담당자': name, '연장근로신청일': applyDate,
+        '근로시간대': String(r[3] || '').trim(), '연장근로시간': String(r[4] || '').trim(),
+        '신청사유': String(r[5] || '').trim(), '승인한시간': fmt(r[6]),
+        '취소여부': '', '월': applyDate ? applyDate.substring(0, 7) : ''
+      });
+    });
+    return { rows };
+  } catch(e) { return { rows: [], error: e.message }; }
+}
+// 연장근무_입력 탭 생성 (열: A센터 B담당자 C신청일 D시간대 E연장시간 F사유 G승인한시간 H승인)
+function createOvertimeInputSheet() {
+  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS 비어있음'); return; }
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('연장근무_입력');
+  if (!sheet) sheet = ss.insertSheet('연장근무_입력', 1);
+  sheet.clear();
+  sheet.getRange(1, 1, sheet.getMaxRows(), 8).clearDataValidations();
+  const headers = ['센터','담당자','연장근로신청일','근로시간대','연장근로시간','신청사유','승인한시간','승인'];
+  sheet.getRange(1,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#a5d6a7').setHorizontalAlignment('center');
+  [140,90,120,110,100,300,130,60].forEach((w,i)=>sheet.setColumnWidth(i+1,w));
+  sheet.getRange(2,8,sheet.getMaxRows()-1,1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+  sheet.setFrozenRows(1);
+  Logger.log('✅ 연장근무_입력 탭 생성. 워크플로우 매핑 A~F. 지점장은 H "승인" 체크만 하면 됨.');
+}
+
+function getOvertimeData() {
+  try {
+    const ss = SpreadsheetApp.openById(OVERTIME_ID);
+    const tz = ss.getSpreadsheetTimeZone() || 'Asia/Seoul';
+    const sheet = ss.getSheetByName('연장근무_입력');
+    if (!sheet || sheet.getLastRow() < 2) return { rows: [] };
+    function fmt(v){ if(v===''||v==null)return''; if(v instanceof Date)return Utilities.formatDate(v,tz,'yyyy-MM-dd'); const m=String(v).trim().match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); return m?m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2):String(v).trim(); }
+    const data = sheet.getRange(2,1,sheet.getLastRow()-1,7).getValues();
+    const rows = [];
+    data.forEach(r => {
+      const name = String(r[1]||'').trim(); if(!name) return;
+      const d = fmt(r[2]);
+      rows.push({ _sheetName:String(r[0]||'').trim()||'기타','담당자':name,'연장근로신청일':d,'근로시간대':String(r[3]||'').trim(),'연장근로시간':String(r[4]||'').trim(),'신청사유':String(r[5]||'').trim(),'승인한시간':fmt(r[6]),'취소여부':'','월':d?d.substring(0,7):'' });
+    });
+    return { rows };
+  } catch(e){ return { rows:[], error:e.message }; }
+}
+
+// 승인 체크 시 승인한시간 자동 기록
+function onOvertimeEdit(e) {
+  try {
+    const sh = e.range.getSheet();
+    if (sh.getName() !== '연장근무_입력') return;
+    if (e.range.getColumn() !== 8) return;
+    const row = e.range.getRow(); if (row < 2) return;
+    const stamp = sh.getRange(row, 7);
+    if (e.range.getValue() === true) { if (!stamp.getValue()) stamp.setValue(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm')); }
+    else { stamp.clearContent(); }
+  } catch (err) {}
+}
+
+// 승인 자동기록 트리거 설치 (1회)
+function installOvertimeApprovalTrigger() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction()==='onOvertimeEdit').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('onOvertimeEdit').forSpreadsheet(SpreadsheetApp.openById(WORK_PLAN_IDS[0])).onEdit().create();
+  Logger.log('✅ 승인 자동기록 트리거 설치 완료.');
+}
+function createOvertimeInputSheet() {
+  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS 비어있음'); return; }
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('연장근무_입력');
+  if (!sheet) sheet = ss.insertSheet('연장근무_입력', 1);
+  sheet.clear();
+  sheet.getRange(1, 1, sheet.getMaxRows(), 8).clearDataValidations();
+  const headers = ['센터','담당자','연장근로신청일','근로시간대','연장근로시간','신청사유','승인한시간','승인'];
+  sheet.getRange(1,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#a5d6a7').setHorizontalAlignment('center');
+  [140,90,120,110,100,300,130,60].forEach((w,i)=>sheet.setColumnWidth(i+1,w));
+  sheet.setFrozenRows(1);
+  const maxR = sheet.getMaxRows();
+  if (maxR > 50) sheet.deleteRows(51, maxR - 50);
+  Logger.log('✅ 연장근무_입력 탭 재생성. 2행부터 쌓이고 체크박스는 자동 부여됨.');
+}
+
+function onOvertimeChange() {
+  try {
+    const sheet = SpreadsheetApp.openById(WORK_PLAN_IDS[0]).getSheetByName('연장근무_입력');
+    if (!sheet) return;
+    const last = sheet.getLastRow();
+    if (last < 2) return;
+    sheet.getRange(2, 8, last - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+  } catch (e) {}
+}
+
+function installOvertimeApprovalTrigger() {
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  ScriptApp.getProjectTriggers().filter(t => ['onOvertimeEdit','onOvertimeChange'].includes(t.getHandlerFunction())).forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('onOvertimeEdit').forSpreadsheet(ss).onEdit().create();
+  ScriptApp.newTrigger('onOvertimeChange').forSpreadsheet(ss).onChange().create();
+  Logger.log('✅ 트리거 설치: onEdit(승인→일시) + onChange(새 행 체크박스 자동부여).');
+}
+function createOvertimeInputSheet() {
+  if (!WORK_PLAN_IDS.length) { Logger.log('WORK_PLAN_IDS 비어있음'); return; }
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('연장근무_입력');
+  if (!sheet) sheet = ss.insertSheet('연장근무_입력', 1);
+  sheet.clear();
+  sheet.getRange(1,1,sheet.getMaxRows(),10).clearDataValidations();
+  const h = ['센터','담당자','연장근로신청일','근로시간대','연장근로시간','신청사유','승인한시간','승인','신청ID','승인자'];
+  sheet.getRange(1,1,1,h.length).setValues([h]).setFontWeight('bold').setBackground('#a5d6a7').setHorizontalAlignment('center');
+  [140,90,120,110,100,280,130,60,40,110].forEach((w,i)=>sheet.setColumnWidth(i+1,w));
+  sheet.hideColumns(9);
+  sheet.setFrozenRows(1);
+  const m = sheet.getMaxRows(); if (m>50) sheet.deleteRows(51, m-50);
+  Logger.log('✅ 연장근무_입력 탭 재생성(10열). 워크플로우 매핑은 A~F 그대로.');
+}
+
+function getOvertimeData() {
+  try {
+    const ss = SpreadsheetApp.openById(OVERTIME_ID);
+    const tz = ss.getSpreadsheetTimeZone() || 'Asia/Seoul';
+    const sheet = ss.getSheetByName('연장근무_입력');
+    if (!sheet || sheet.getLastRow() < 2) return { rows: [] };
+    function fmt(v){ if(v===''||v==null)return''; if(v instanceof Date)return Utilities.formatDate(v,tz,'yyyy-MM-dd'); const m=String(v).trim().match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); return m?m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2):String(v).trim(); }
+    const data = sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
+    const rows = [];
+    data.forEach(r => {
+      const name = String(r[1]||'').trim(); if(!name) return;
+      const d = fmt(r[2]);
+      rows.push({ _sheetName:String(r[0]||'').trim()||'기타','담당자':name,'연장근로신청일':d,'근로시간대':String(r[3]||'').trim(),'연장근로시간':String(r[4]||'').trim(),'신청사유':String(r[5]||'').trim(),'승인한시간':fmt(r[6]),'승인자':String(r[9]||'').trim(),id:String(r[8]||'').trim(),'취소여부':'','월':d?d.substring(0,7):'' });
+    });
+    return { rows };
+  } catch(e){ return { rows:[], error:e.message }; }
+}
+
+function onOvertimeChange() {
+  try {
+    const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+    const sheet = ss.getSheetByName('연장근무_입력');
+    if (!sheet) return;
+    const last = sheet.getLastRow(); if (last < 2) return;
+    sheet.getRange(2,8,last-1,1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+    const data = sheet.getRange(2,1,last-1,10).getValues();
+    for (let i=0;i<data.length;i++){
+      const r=data[i], row=i+2;
+      const name=String(r[1]||'').trim(), center=String(r[0]||'').trim(), id=String(r[8]||'').trim();
+      if(!name || id) continue;
+      const newId = Utilities.getUuid();
+      sheet.getRange(row,9).setValue(newId);
+      sendOvertimeApprovalDM(center, name, r, newId);
+    }
+  } catch(e){}
+}
+
+function sendOvertimeApprovalDM(center, name, r, id) {
+  try {
+    const mgr = CENTER_MANAGER_IDS[center]; if(!mgr) return;
+    const op = UrlFetchApp.fetch('https://slack.com/api/conversations.open', { method:'post', headers:{Authorization:'Bearer '+SLACK_TOKEN}, payload:{users:mgr}, muteHttpExceptions:true });
+    const ch = (JSON.parse(op.getContentText()).channel||{}).id; if(!ch) return;
+    const tz = Session.getScriptTimeZone();
+    const date = r[2] instanceof Date ? Utilities.formatDate(r[2],tz,'yyyy-MM-dd') : String(r[2]||'');
+    const url = ScriptApp.getService().getUrl() + '?action=otApprove&id=' + id;
+    const blocks = [
+      { type:'section', text:{ type:'mrkdwn', text:'🕐 *연장근무 승인 요청*\n*센터:* '+center+'\n*담당자:* '+name+'\n*일자:* '+date+'   *시간대:* '+(r[3]||'')+' ('+(r[4]||'')+')\n*사유:* '+(r[5]||'') } },
+      { type:'actions', elements:[ { type:'button', text:{type:'plain_text',text:'✅ 승인',emoji:true}, style:'primary', url:url } ] }
+    ];
+    UrlFetchApp.fetch('https://slack.com/api/chat.postMessage', { method:'post', headers:{Authorization:'Bearer '+SLACK_TOKEN,'Content-Type':'application/json'}, payload:JSON.stringify({channel:ch, blocks:blocks, text:'연장근무 승인 요청: '+name+' ('+center+')'}), muteHttpExceptions:true });
+  } catch(e){}
+}
+
+function onOvertimeEdit(e) {
+  try {
+    const sh = e.range.getSheet();
+    if (sh.getName() !== '연장근무_입력') return;
+    if (e.range.getColumn() !== 8) return;
+    const row = e.range.getRow(); if (row < 2) return;
+    const stamp = sh.getRange(row,7);
+    if (e.range.getValue() === true) {
+      if (!stamp.getValue()) stamp.setValue(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'));
+      const who = (e.user && e.user.getEmail && e.user.getEmail()) || '';
+      if (who) sh.getRange(row,10).setValue(who);
+    } else { stamp.clearContent(); sh.getRange(row,10).clearContent(); }
+  } catch(err){}
+}
+
+function otApproveResponse(id) {
+  try {
+    if (!id) return otHtml('잘못된 요청', '', '', true);
+    const sheet = SpreadsheetApp.openById(OVERTIME_ID).getSheetByName('연장근무_입력');
+    const last = sheet.getLastRow(); if (last<2) return otHtml('신청을 찾을 수 없음','','',true);
+    const data = sheet.getRange(2,1,last-1,10).getValues();
+    for (let i=0;i<data.length;i++){
+      if (String(data[i][8]).trim() === String(id).trim()) {
+        const row=i+2, center=String(data[i][0]||'').trim(), name=String(data[i][1]||'').trim();
+        if (data[i][6]) return otHtml('이미 승인된 신청입니다', name, center, true);
+        const tz = Session.getScriptTimeZone();
+        sheet.getRange(row,7).setValue(Utilities.formatDate(new Date(),tz,'yyyy-MM-dd HH:mm'));
+        sheet.getRange(row,8).setValue(true);
+        sheet.getRange(row,10).setValue(CENTER_MANAGER_NAMES[center] || (center+' 지점장'));
+        try { CacheService.getScriptCache().remove('hn_overtime'); } catch(e){}
+        return otHtml('✅ 승인 완료되었습니다', name, center, false);
+      }
+    }
+    return otHtml('신청을 찾을 수 없습니다 (이미 처리/삭제)','','',true);
+  } catch(e){ return otHtml('오류: '+e.message,'','',true); }
+}
+
+function otHtml(msg, name, center, already) {
+  return HtmlService.createHtmlOutput('<div style="font-family:sans-serif;text-align:center;padding:48px 24px;"><div style="font-size:44px;">'+(already?'☑️':'✅')+'</div><h2 style="margin:12px 0;">'+msg+'</h2>'+(name?('<p style="color:#555;">'+center+' · '+name+' 연장근무</p>'):'')+'<p style="color:#999;font-size:13px;">이 창은 닫으셔도 됩니다.</p></div>');
+}
+const WEBAPP_URL = 'https://script.google.com/a/macros/caring.co.kr/s/AKfycbwd_7QEADb_TQhSgrfG88uRvCImMls-feHGKRIsAfImcyjDwiw0z7c4-DzLQ-EEFikD4g/exec';
+
+function otFmtDate(v) {
+  if (v === '' || v == null) return '';
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  if (typeof v === 'number') return Utilities.formatDate(new Date(Math.round((v - 25569) * 86400000)), 'GMT', 'yyyy-MM-dd');
+  const m = String(v).trim().match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  return m ? m[1] + '-' + ('0'+m[2]).slice(-2) + '-' + ('0'+m[3]).slice(-2) : String(v).trim();
+}
+
+function sendOvertimeApprovalDM(center, name, r, id) {
+  try {
+    const mgr = CENTER_MANAGER_IDS[center]; if (!mgr) return;
+    const op = UrlFetchApp.fetch('https://slack.com/api/conversations.open', { method:'post', headers:{Authorization:'Bearer '+SLACK_TOKEN}, payload:{users:mgr}, muteHttpExceptions:true });
+    const ch = (JSON.parse(op.getContentText()).channel||{}).id; if (!ch) return;
+    const date = otFmtDate(r[2]);
+    const url = WEBAPP_URL + '?action=otApprove&id=' + id;
+    const txt = '🕐 *연장근무 승인 요청*\n*센터:* '+center+'\n*담당자:* '+name+'\n*일자:* '+date+'   *시간대:* '+(r[3]||'')+' ('+(r[4]||'')+')\n*사유:* '+(r[5]||'')+'\n\n👉 <'+url+'|✅ 승인하기>';
+    UrlFetchApp.fetch('https://slack.com/api/chat.postMessage', { method:'post', headers:{Authorization:'Bearer '+SLACK_TOKEN,'Content-Type':'application/json'}, payload:JSON.stringify({channel:ch, text:txt}), muteHttpExceptions:true });
+  } catch(e){}
+}
+
+function onOvertimeChange() {
+  try {
+    const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+    const sheet = ss.getSheetByName('연장근무_입력');
+    if (!sheet) return;
+    const last = sheet.getLastRow(); if (last < 2) return;
+    sheet.getRange(2,8,last-1,1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+    const data = sheet.getRange(2,1,last-1,10).getValues();
+    for (let i=0;i<data.length;i++){
+      const r=data[i], row=i+2;
+      const name=String(r[1]||'').trim(), center=String(r[0]||'').trim(), id=String(r[8]||'').trim();
+      if(!name || id) continue;
+      const niceDate = otFmtDate(r[2]);
+      if (niceDate && niceDate !== String(r[2])) sheet.getRange(row,3).setValue(niceDate);
+      const newId = Utilities.getUuid();
+      sheet.getRange(row,9).setValue(newId);
+      sendOvertimeApprovalDM(center, name, r, newId);
+    }
+  } catch(e){}
+}
+
+function getOvertimeData() {
+  try {
+    const ss = SpreadsheetApp.openById(OVERTIME_ID);
+    const sheet = ss.getSheetByName('연장근무_입력');
+    if (!sheet || sheet.getLastRow() < 2) return { rows: [] };
+    const data = sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
+    const rows = [];
+    data.forEach(r => {
+      const name = String(r[1]||'').trim(); if(!name) return;
+      const d = otFmtDate(r[2]);
+      rows.push({ _sheetName:String(r[0]||'').trim()||'기타','담당자':name,'연장근로신청일':d,'근로시간대':String(r[3]||'').trim(),'연장근로시간':String(r[4]||'').trim(),'신청사유':String(r[5]||'').trim(),'승인한시간':otFmtDate(r[6]),'승인자':String(r[9]||'').trim(),id:String(r[8]||'').trim(),'취소여부':'','월':d?d.substring(0,7):'' });
+    });
+    return { rows };
+  } catch(e){ return { rows:[], error:e.message }; }
+}
+function clientApproveOvertime(id, approverName) {
+  try {
+    const sheet = SpreadsheetApp.openById(OVERTIME_ID).getSheetByName('연장근무_입력');
+    const last = sheet.getLastRow(); if (last < 2) return { ok:false, error:'no data' };
+    const data = sheet.getRange(2,1,last-1,10).getValues();
+    for (let i=0;i<data.length;i++){
+      if (String(data[i][8]).trim() === String(id).trim()) {
+        const row = i+2;
+        sheet.getRange(row,7).setValue(Utilities.formatDate(new Date(),Session.getScriptTimeZone(),'yyyy-MM-dd HH:mm'));
+        sheet.getRange(row,8).setValue(true);
+        sheet.getRange(row,10).setValue(approverName || '대시보드 승인');
+        try { CacheService.getScriptCache().remove('hn_overtime'); } catch(e){}
+        return { ok:true };
+      }
+    }
+    return { ok:false, error:'not found' };
+  } catch(e){ return { ok:false, error:e.message }; }
+}
+// ─── 지점 채널 매핑 (지점장 → 채널 ID) ───
+const BRANCH_CHANNELS = {
+  '정혜인': 'C0A90GWR10V', '김미란': 'C0A8XJB3YUB', '윤연임': 'C0A97HL1H44',
+  '임현숙': 'C0ABW0QP7AB', '김소형': 'C0A90GBSJER'
+};
+const NOTICE_CHANNEL = 'C0A93UNM80J';
+
+const DEFAULT_WORK_KEYWORDS = ['구인','채용','면접','어르신','수급자','계약','해지','방문','송영','차량','민원','사고','점검','교육','일정','회의','보고','결재','인력','대근','연장근무','급여','비품','시설','요청','확인','공지'];
+
+function getWorkKeywords() {
+  try {
+    const sheet = SpreadsheetApp.openById(WORK_PLAN_IDS[0]).getSheetByName('업무키워드');
+    if (sheet && sheet.getLastRow() >= 1) {
+      const vals = sheet.getRange(1,1,sheet.getLastRow(),1).getValues().flat().map(s=>String(s).trim()).filter(Boolean);
+      if (vals.length) return vals;
+    }
+  } catch(e){}
+  return DEFAULT_WORK_KEYWORDS;
+}
+
+function createWorkKeywordSheet() {
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('업무키워드');
+  if (!sheet) sheet = ss.insertSheet('업무키워드');
+  if (sheet.getLastRow() < 1) sheet.getRange(1,1,DEFAULT_WORK_KEYWORDS.length,1).setValues(DEFAULT_WORK_KEYWORDS.map(k=>[k]));
+  sheet.setColumnWidth(1,200);
+  Logger.log('✅ "업무키워드" 탭 준비 완료. A열에 한 줄당 한 단어 추가→필터 반영(캐시 5분).');
+}
+
+function getChannelWorkItems(channelId, keywords, wsUrl, sinceDays, limit) {
+  try {
+    const since = (Date.now() - (sinceDays||14)*86400000)/1000;
+    const res = UrlFetchApp.fetch('https://slack.com/api/conversations.history?channel='+channelId+'&limit=100', { headers:{Authorization:'Bearer '+SLACK_TOKEN}, muteHttpExceptions:true });
+    const data = JSON.parse(res.getContentText());
+    if (!data.ok) return [];
+    const out = [];
+    (data.messages||[]).forEach(m => {
+      if (m.type!=='message' || m.subtype) return;
+      if (parseFloat(m.ts) < since) return;
+      const text = String(m.text||'');
+      if (!keywords.some(k => text.indexOf(k) !== -1)) return;
+      out.push({ text: text.length>140 ? text.substring(0,140)+'…' : text, ts: m.ts, permalink: wsUrl+'archives/'+channelId+'/p'+m.ts.replace('.','') });
+    });
+    return out.sort((a,b)=>parseFloat(b.ts)-parseFloat(a.ts)).slice(0, limit||8);
+  } catch(e){ return []; }
+}
+
+function clientGetBranchChannels() {
+  const cache = CacheService.getScriptCache();
+  const cv = cache.get('hn_branch'); if (cv) { try { return JSON.parse(cv); } catch(e){} }
+  const kw = getWorkKeywords();
+  let wsUrl=''; try { wsUrl = JSON.parse(UrlFetchApp.fetch('https://slack.com/api/auth.test',{headers:{Authorization:'Bearer '+SLACK_TOKEN},muteHttpExceptions:true}).getContentText()).url||''; } catch(e){}
+  const result = {};
+  Object.keys(BRANCH_CHANNELS).forEach(name => { result[name] = getChannelWorkItems(BRANCH_CHANNELS[name], kw, wsUrl, 14, 8); });
+  try { cache.put('hn_branch', JSON.stringify(result), 300); } catch(e){}
+  return result;
+}
+
+function debugBranch() { Logger.log(JSON.stringify(clientGetBranchChannels(), null, 2)); }
+// ─── 본부 지시 할일 (지점별, 대시보드 입력+체크박스) ───
+function createBranchTodoSheet() {
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('지점할일');
+  if (!sheet) sheet = ss.insertSheet('지점할일');
+  if (sheet.getLastRow() < 1) {
+    sheet.getRange(1,1,1,6).setValues([['지점장','할일','등록일','완료','완료일','ID']]).setFontWeight('bold').setBackground('#a5d6a7');
+    [90,360,140,60,140,40].forEach(function(w,i){ sheet.setColumnWidth(i+1,w); });
+    sheet.setFrozenRows(1);
+  }
+  Logger.log('지점할일 탭 준비 완료.');
+}
+function clientGetBranchTodos() {
+  try {
+    var sheet = SpreadsheetApp.openById(WORK_PLAN_IDS[0]).getSheetByName('지점할일');
+    if (!sheet || sheet.getLastRow() < 2) return {};
+    var data = sheet.getRange(2,1,sheet.getLastRow()-1,6).getValues();
+    var result = {};
+    data.forEach(function(r){
+      var member = String(r[0]||'').trim(), text = String(r[1]||'').trim();
+      if (!member || !text) return;
+      (result[member] = result[member]||[]).push({ text: text, regDt: String(r[2]||''), done: (r[3]===true||r[3]==='TRUE'), id: String(r[5]||'') });
+    });
+    return result;
+  } catch(e){ return {}; }
+}
+function clientAddBranchTodo(member, text) {
+  try {
+    if (!member || !text) return { ok:false, error:'입력 누락' };
+    var ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+    var sheet = ss.getSheetByName('지점할일'); if (!sheet) { createBranchTodoSheet(); sheet = ss.getSheetByName('지점할일'); }
+    sheet.appendRow([member, text, Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'), false, '', Utilities.getUuid()]);
+    return { ok:true };
+  } catch(e){ return { ok:false, error:e.message }; }
+}
+function clientToggleBranchTodo(id, done) {
+  try {
+    var sheet = SpreadsheetApp.openById(WORK_PLAN_IDS[0]).getSheetByName('지점할일');
+    var last = sheet.getLastRow(); if (last<2) return { ok:false };
+    var ids = sheet.getRange(2,6,last-1,1).getValues();
+    for (var i=0;i<ids.length;i++){
+      if (String(ids[i][0]).trim()===String(id).trim()){
+        var row=i+2;
+        sheet.getRange(row,4).setValue(done===true);
+        sheet.getRange(row,5).setValue(done===true ? Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : '');
+        return { ok:true };
+      }
+    }
+    return { ok:false, error:'not found' };
+  } catch(e){ return { ok:false, error:e.message }; }
+}
+
+// ─── 이슈 키워드 (좁게, 채널 이슈 필터용) ───────────────────────────────────────
+const DEFAULT_ISSUE_KEYWORDS = ['사고','민원','해지','항의','중단','긴급','시정','분쟁'];
+function getIssueKeywords() {
+  try {
+    const sheet = SpreadsheetApp.openById(WORK_PLAN_IDS[0]).getSheetByName('이슈키워드');
+    if (sheet && sheet.getLastRow() >= 1) {
+      const vals = sheet.getRange(1,1,sheet.getLastRow(),1).getValues().flat().map(function(s){return String(s).trim();}).filter(Boolean);
+      if (vals.length) return vals;
+    }
+  } catch(e){}
+  return DEFAULT_ISSUE_KEYWORDS;
+}
+function createIssueKeywordSheet() {
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('이슈키워드');
+  if (!sheet) sheet = ss.insertSheet('이슈키워드');
+  if (sheet.getLastRow() < 1) sheet.getRange(1,1,DEFAULT_ISSUE_KEYWORDS.length,1).setValues(DEFAULT_ISSUE_KEYWORDS.map(function(k){return [k];}));
+  sheet.setColumnWidth(1,200);
+  Logger.log('✅ "이슈키워드" 탭 준비 완료. A열에 한 줄당 한 단어 추가→채널 이슈 필터 반영(캐시 3분).');
+}
+
+// ─── 본부 이슈/할일 (이슈탭 상단, 본부장 직접입력+체크박스) ───────────────────────
+function createHqIssueSheet() {
+  const ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+  let sheet = ss.getSheetByName('본부이슈');
+  if (!sheet) sheet = ss.insertSheet('본부이슈');
+  if (sheet.getLastRow() < 1) {
+    sheet.getRange(1,1,1,6).setValues([['내용','등록일','완료','완료일','출처','ID']]).setFontWeight('bold').setBackground('#a5d6a7');
+    [380,140,60,140,120,40].forEach(function(w,i){ sheet.setColumnWidth(i+1,w); });
+    sheet.setFrozenRows(1);
+  }
+  Logger.log('본부이슈 탭 준비 완료.');
+}
+function clientGetHqIssues() {
+  try {
+    var sheet = SpreadsheetApp.openById(WORK_PLAN_IDS[0]).getSheetByName('본부이슈');
+    if (!sheet || sheet.getLastRow() < 2) return [];
+    var data = sheet.getRange(2,1,sheet.getLastRow()-1,6).getValues();
+    var out = [];
+    data.forEach(function(r){
+      var text = String(r[0]||'').trim(); if (!text) return;
+      out.push({ text: text, regDt: String(r[1]||''), done: (r[2]===true||r[2]==='TRUE'), doneDt: String(r[3]||''), src: String(r[4]||''), id: String(r[5]||'') });
+    });
+    out.sort(function(a,b){ if (a.done!==b.done) return a.done?1:-1; return a.regDt<b.regDt?1:-1; });
+    return out;
+  } catch(e){ return []; }
+}
+function clientAddHqIssue(text, src) {
+  try {
+    if (!text || !String(text).trim()) return { ok:false, error:'입력 누락' };
+    var ss = SpreadsheetApp.openById(WORK_PLAN_IDS[0]);
+    var sheet = ss.getSheetByName('본부이슈'); if (!sheet) { createHqIssueSheet(); sheet = ss.getSheetByName('본부이슈'); }
+    sheet.appendRow([String(text).trim(), Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'), false, '', String(src||''), Utilities.getUuid()]);
+    return { ok:true };
+  } catch(e){ return { ok:false, error:e.message }; }
+}
+function clientToggleHqIssue(id, done) {
+  try {
+    var sheet = SpreadsheetApp.openById(WORK_PLAN_IDS[0]).getSheetByName('본부이슈');
+    var last = sheet.getLastRow(); if (last<2) return { ok:false };
+    var ids = sheet.getRange(2,6,last-1,1).getValues();
+    for (var i=0;i<ids.length;i++){
+      if (String(ids[i][0]).trim()===String(id).trim()){
+        var row=i+2;
+        sheet.getRange(row,3).setValue(done===true);
+        sheet.getRange(row,4).setValue(done===true ? Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : '');
+        return { ok:true };
+      }
+    }
+    return { ok:false, error:'not found' };
+  } catch(e){ return { ok:false, error:e.message }; }
+}
+function clientDeleteHqIssue(id) {
+  try {
+    var sheet = SpreadsheetApp.openById(WORK_PLAN_IDS[0]).getSheetByName('본부이슈');
+    var last = sheet.getLastRow(); if (last<2) return { ok:false };
+    var ids = sheet.getRange(2,6,last-1,1).getValues();
+    for (var i=0;i<ids.length;i++){
+      if (String(ids[i][0]).trim()===String(id).trim()){ sheet.deleteRow(i+2); return { ok:true }; }
+    }
+    return { ok:false, error:'not found' };
+  } catch(e){ return { ok:false, error:e.message }; }
+}
+
+// ─── 본부 행정공지 자동전파 (00_행정공지_호남본부_센터관리자 → 5개 지점 채널) ──────────
+const GONGJI_CHANNEL = 'C094QRX7QLV';   // 본사→본부 행정공지(센터관리자) 소스 채널
+
+function postSlackMessage(channel, text) {
+  return UrlFetchApp.fetch('https://slack.com/api/chat.postMessage', {
+    method:'post',
+    headers:{ Authorization:'Bearer '+SLACK_TOKEN, 'Content-Type':'application/json' },
+    payload: JSON.stringify({ channel: channel, text: text, unfurl_links:false, unfurl_media:false }),
+    muteHttpExceptions:true
+  });
+}
+
+function sanitizeGongji(t) {           // @channel/@here 전체알림 제거(조용히 전파)
+  return String(t||'').replace(/<!channel>/g,'').replace(/<!here>/g,'').replace(/<!everyone>/g,'').trim();
+}
+function formatGongjiTs(ts) {
+  var d = new Date(parseFloat(ts)*1000), days=['일','월','화','수','목','금','토'];
+  function p(n){return (n<10?'0':'')+n;}
+  return (d.getMonth()+1)+'/'+d.getDate()+'('+days[d.getDay()]+') '+p(d.getHours())+':'+p(d.getMinutes());
+}
+
+function forwardGongji() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(2000)) return;     // 중복 실행 방지
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var lastTs = parseFloat(props.getProperty('LAST_GONGJI_TS') || '0');
+    var res = UrlFetchApp.fetch('https://slack.com/api/conversations.history?channel='+GONGJI_CHANNEL+'&limit=30',
+      { headers:{ Authorization:'Bearer '+SLACK_TOKEN }, muteHttpExceptions:true });
+    var data = JSON.parse(res.getContentText());
+    if (!data.ok) { Logger.log('행정공지 읽기 실패: '+data.error); return; }
+    var wsUrl=''; try { wsUrl = JSON.parse(UrlFetchApp.fetch('https://slack.com/api/auth.test',{headers:{Authorization:'Bearer '+SLACK_TOKEN},muteHttpExceptions:true}).getContentText()).url||''; } catch(e){}
+    var msgs = (data.messages||[]).filter(function(m){
+      if (parseFloat(m.ts) <= lastTs) return false;          // 이미 전파한 것
+      if (m.type !== 'message') return false;
+      if (m.subtype && m.subtype !== 'bot_message') return false;   // 사람글+봇공지만(입장/시스템 제외)
+      if (m.thread_ts && m.thread_ts !== m.ts) return false; // 스레드 답글 제외
+      if (!String(m.text||'').trim()) return false;
+      return true;
+    }).sort(function(a,b){ return parseFloat(a.ts)-parseFloat(b.ts); });   // 오래된→최신
+    if (!msgs.length) return;
+    var targets = Object.keys(BRANCH_CHANNELS).map(function(k){ return BRANCH_CHANNELS[k]; });
+    var maxTs = lastTs;
+    msgs.forEach(function(m){
+      var permalink = wsUrl + 'archives/' + GONGJI_CHANNEL + '/p' + String(m.ts).replace('.','');
+      var out = '📢 *[본부 행정공지]*  ·  ' + formatGongjiTs(m.ts) + '\n\n'
+              + sanitizeGongji(m.text) + '\n\n🔗 <' + permalink + '|원문 보기> (첨부파일·댓글은 원문에서 확인)';
+      targets.forEach(function(ch){ postSlackMessage(ch, out); Utilities.sleep(300); });
+      if (parseFloat(m.ts) > maxTs) maxTs = parseFloat(m.ts);
+    });
+    props.setProperty('LAST_GONGJI_TS', String(maxTs));
+    Logger.log('✅ 전파 완료: 공지 '+msgs.length+'건 × '+targets.length+'채널');
+  } finally { lock.releaseLock(); }
+}
+
+function installGongjiForwarder() {
+  ScriptApp.getProjectTriggers().forEach(function(tr){ if (tr.getHandlerFunction()==='forwardGongji') ScriptApp.deleteTrigger(tr); });
+  var props = PropertiesService.getScriptProperties();
+  var res = UrlFetchApp.fetch('https://slack.com/api/conversations.history?channel='+GONGJI_CHANNEL+'&limit=1', { headers:{ Authorization:'Bearer '+SLACK_TOKEN }, muteHttpExceptions:true });
+  var data = JSON.parse(res.getContentText());
+  var baseTs = (data.ok && data.messages && data.messages.length) ? data.messages[0].ts : String(Date.now()/1000);
+  props.setProperty('LAST_GONGJI_TS', String(baseTs));   // 설치 시점 이후 새 공지만(과거 도배 방지)
+  ScriptApp.newTrigger('forwardGongji').timeBased().everyMinutes(10).create();
+  Logger.log('✅ 행정공지 자동전파 설치 완료. 기준 ts='+baseTs+' 이후 새 공지부터 5개 지점 전파(10분 주기).');
+}
+
+function uninstallGongjiForwarder() {
+  var n=0;
+  ScriptApp.getProjectTriggers().forEach(function(tr){ if (tr.getHandlerFunction()==='forwardGongji'){ ScriptApp.deleteTrigger(tr); n++; } });
+  Logger.log('🛑 행정공지 자동전파 중지. 삭제된 트리거 '+n+'개.');
+}
+
+// 검증용: 최신 공지 1건을 김제점 채널에만 1회 전파
+function testForwardGongjiOne() {
+  var res = UrlFetchApp.fetch('https://slack.com/api/conversations.history?channel='+GONGJI_CHANNEL+'&limit=10', { headers:{ Authorization:'Bearer '+SLACK_TOKEN }, muteHttpExceptions:true });
+  var data = JSON.parse(res.getContentText());
+  var wsUrl=''; try { wsUrl = JSON.parse(UrlFetchApp.fetch('https://slack.com/api/auth.test',{headers:{Authorization:'Bearer '+SLACK_TOKEN},muteHttpExceptions:true}).getContentText()).url||''; } catch(e){}
+  var m = (data.messages||[]).filter(function(x){ return (!x.subtype||x.subtype==='bot_message') && String(x.text||'').trim() && !(x.thread_ts&&x.thread_ts!==x.ts); })[0];
+  if (!m) { Logger.log('테스트할 공지 없음'); return; }
+  var permalink = wsUrl + 'archives/' + GONGJI_CHANNEL + '/p' + String(m.ts).replace('.','');
+  var out = '📢 *[본부 행정공지 — 전파 테스트]*  ·  ' + formatGongjiTs(m.ts) + '\n\n' + sanitizeGongji(m.text) + '\n\n🔗 <' + permalink + '|원문 보기>';
+  postSlackMessage(BRANCH_CHANNELS['김소형'], out);   // 김제점
+  Logger.log('✅ 테스트 전파 완료(김제점). 확인 후 installGongjiForwarder 실행하세요.');
+}

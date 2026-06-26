@@ -81,6 +81,30 @@
     .work-box { font-size: 13px; color: #444; line-height: 1.65; background: #f7f8fc; border-radius: 8px; padding: 10px 13px; min-height: 48px; white-space: pre-wrap; word-break: break-word; }
     .work-box.empty { color: #bbb; font-style: italic; min-height: 36px; }
     .work-box.tomorrow { background: #f1f8f1; }
+    .branch-feed { margin-top: 10px; }
+    .branch-label { font-size: 11px; font-weight: 700; color: #1565c0; margin-bottom: 4px; display: block; }
+    .branch-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #555; background: #eef4ff; border-radius: 7px; padding: 7px 10px; margin-top: 5px; line-height: 1.5; word-break: break-word; }
+    .branch-item .slack-link { flex-shrink: 0; }
+    .hq-todo { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e0e0e0; }
+    .hq-todo-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; padding: 4px 0; }
+    .hq-todo-item.done span { color: #aaa; text-decoration: line-through; }
+    .hq-todo-add { display: flex; gap: 6px; margin-top: 8px; }
+    .hq-todo-add input { flex: 1; font-size: 12px; padding: 6px 9px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; }
+    .hq-todo-add button { font-size: 12px; padding: 6px 12px; background: #2e7d32; color: #fff; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+    .branch-badge { font-size: 11px; font-weight: 600; color: #2e7d32; background: #e8f5e9; border-radius: 6px; padding: 2px 8px; margin-left: 4px; }
+    .week-plan { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e0e0e0; }
+    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 4px; }
+    .week-cell { background: #f7f8fc; border-radius: 7px; padding: 7px 5px; min-height: 60px; }
+    .week-cell.today { background: #e8f5e9; border: 1.5px solid #2e7d32; }
+    .week-cell.sun { background: #fce4ec; }
+    .week-date { font-size: 11px; font-weight: 700; color: #444; }
+    .week-cell.today .week-date { color: #2e7d32; }
+    .week-cell.sun .week-date { color: #c62828; }
+    .week-dow { font-weight: 400; color: #888; margin-left: 2px; }
+    .week-work { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.35; word-break: break-word; }
+    .week-none { font-size: 11px; color: #bbb; margin-top: 4px; }
+    .week-none.sun { color: #c62828; }
+    @media (max-width: 640px) { .week-grid { grid-template-columns: repeat(7, minmax(0,1fr)); } }
 
     .recruit-section { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     .recruit-table-wrap { overflow-x: auto; margin-top: 4px; }
@@ -139,6 +163,7 @@
     .slack-channel-title { font-size: 13px; font-weight: 700; color: #fff; padding: 6px 14px; border-radius: 8px; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px; }
     .slack-ch-leader  { background: #2e7d32; }
     .slack-ch-manager { background: #1565c0; }
+    .slack-ch-notice  { background: #6a1b9a; }
     .todo-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
     .todo-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 10px; background: #f7f8fc; border-left: 3px solid #2e7d32; transition: background .15s; }
     .todo-item:hover { background: #e8f5e9; }
@@ -162,6 +187,45 @@
     .done-count { font-size: 12px; color: #bbb; font-weight: 400; }
     .done-toggle { margin-left: auto; font-size: 11px; color: #bbb; }
     .done-section-body { margin-top: 6px; padding-left: 4px; }
+
+    /* 내 이슈/할일 보드 */
+    .hqi-card { background: #fff; }
+    .hqi-head { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #1b3a26; margin-bottom: 12px; }
+    .hqi-sub { font-size: 12px; font-weight: 400; color: #9aa39b; }
+    .hqi-hide { margin-left: auto; font-size: 12px; font-weight: 400; color: #5f6b62; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 4px; }
+    .hqi-add { display: flex; gap: 8px; margin-bottom: 12px; }
+    .hqi-add input { flex: 1; height: 36px; border: 1px solid #cfd6ce; border-radius: 8px; padding: 0 12px; font-size: 13.5px; outline: none; }
+    .hqi-add input:focus { border-color: #2e7d32; }
+    .hqi-add button { background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 0 18px; font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .hqi-add button:hover { background: #256628; }
+    .hqi-item { display: flex; align-items: center; gap: 10px; padding: 10px 6px; border-top: 1px solid #eef1ee; }
+    .hqi-item:hover { background: #f7faf7; }
+    .hqi-chk { width: 17px; height: 17px; accent-color: #2e7d32; cursor: pointer; flex-shrink: 0; }
+    .hqi-text { flex: 1; font-size: 13.5px; color: #23302a; word-break: break-word; }
+    .hqi-item.done .hqi-text { text-decoration: line-through; color: #9aa39b; }
+    .hqi-src { font-size: 10px; color: #185fa5; background: #e6f1fb; border-radius: 5px; padding: 1px 6px; flex-shrink: 0; }
+    .hqi-date { font-size: 11px; color: #9aa39b; flex-shrink: 0; }
+    .hqi-del { font-size: 14px; cursor: pointer; opacity: .5; flex-shrink: 0; }
+    .hqi-del:hover { opacity: 1; }
+
+    /* 채널 이슈 (참고) */
+    .ci-head { font-size: 14px; font-weight: 700; color: #1b3a26; margin-bottom: 8px; }
+    .ci-kw { font-size: 11px; color: #5f6b62; background: #eef4ef; border-radius: 6px; padding: 6px 10px; margin-bottom: 16px; }
+    .ci-block { margin-bottom: 22px; }
+    .ci-block:last-child { margin-bottom: 0; }
+    .ci-title { font-size: 13px; font-weight: 700; color: #fff; padding: 5px 12px; border-radius: 8px; margin-bottom: 10px; display: inline-flex; align-items: center; gap: 6px; }
+    .ci-item { padding: 9px 12px; border-radius: 8px; background: #f7f8fc; border-left: 3px solid #2e7d32; margin-bottom: 8px; }
+    .ci-item.slack-ch-manager { border-left-color: #1565c0; }
+    .ci-item.slack-ch-notice  { border-left-color: #6a1b9a; }
+    .ci-item.done { opacity: .6; }
+    .ci-text { font-size: 12.5px; color: #23302a; line-height: 1.55; word-break: break-word; white-space: pre-wrap; }
+    .ci-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .ci-date { font-size: 11px; color: #9aa39b; }
+    .ci-thread { font-size: 11px; font-weight: 600; color: #2e7d32; }
+    .ci-meta .slack-link { margin-left: auto; }
+    .ci-add { font-size: 11px; color: #2e7d32; background: #fff; border: 1px solid #abd39f; border-radius: 6px; padding: 2px 9px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .ci-add:hover { background: #e8f5e9; }
+    .ci-add:disabled { opacity: .6; cursor: default; }
 
     .overtime-section { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     .ot-day-label { font-size: 13px; font-weight: 700; color: #2e7d32; padding: 14px 4px 8px; border-bottom: 2px solid #e8f5e9; margin-bottom: 4px; }
@@ -315,10 +379,11 @@ async function loadData() {
   document.getElementById('tc-recruit').textContent = '-';
 
   try {
-    const [membersData, overtimeData, slackData] = await Promise.all([
+    const [membersData, overtimeData, slackData, hqIssues] = await Promise.all([
       gsRun('clientGetMembers'),
       gsRun('clientGetOvertime'),
       gsRun('clientGetSlack'),
+      gsRun('clientGetHqIssues'),
     ]);
 
     const today     = new Date(membersData.date);
@@ -334,9 +399,12 @@ async function loadData() {
     document.getElementById('tc-work').textContent      = members.length;
 
     renderCenterPanel(otRows, thisYear, thisMonth);
+    computeWeek(today);
     renderMembers(members, otRows, thisYear, thisMonth);
-    renderSlack(slackData);
+    renderSlack(slackData, hqIssues);
     renderOT(otRows, today);
+    gsRun('clientGetBranchChannels').then(applyBranchChannels).catch(() => {});
+    gsRun('clientGetBranchTodos').then(applyBranchTodos).catch(() => {});
 
     const now = new Date();
     document.getElementById('refresh-time').textContent = `업데이트: ${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -480,30 +548,55 @@ function renderCenterView() {
 }
 
 /* ── 팀원 카드 ── */
+const BRANCH_OF = { '정혜인':'광주 병설 봄날점', '김미란':'광주 호남점', '윤연임':'여수방문점', '임현숙':'군산 병설 방문점', '김소형':'김제점', '이흥덕':'본부' };
+let WEEK_DATES = [];
+function computeWeek(baseDate) {
+  const days = ['일','월','화','수','목','금','토'];
+  const dow = baseDate.getDay();
+  const monday = new Date(baseDate); monday.setDate(baseDate.getDate() - (dow===0?6:dow-1));
+  const todayStr = `${baseDate.getFullYear()}-${pad(baseDate.getMonth()+1)}-${pad(baseDate.getDate())}`;
+  WEEK_DATES = [];
+  for (let i=0;i<7;i++){
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    const ds = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    WEEK_DATES.push({ ds, label:`${d.getMonth()+1}/${d.getDate()}`, dow:days[d.getDay()], isToday:ds===todayStr, isSun:d.getDay()===0 });
+  }
+}
 function renderMembers(members, otRows, thisYear, thisMonth) {
   const grid = document.getElementById('members-grid');
   if (!members.length) { grid.innerHTML='<div class="state-msg">팀원 시트가 없습니다.</div>'; return; }
   const memberMap = {}; members.forEach(m => memberMap[m.name] = m);
+  function weekCell(m, wd) {
+    const work = (m.week && m.week[wd.ds]) ? esc(m.week[wd.ds]) : '';
+    const cls = wd.isToday ? 'week-cell today' : (wd.isSun ? 'week-cell sun' : 'week-cell');
+    const body = (wd.isSun && !work) ? '<div class="week-none sun">미운영</div>' : (work ? `<div class="week-work">${work}</div>` : '<div class="week-none">—</div>');
+    return `<div class="${cls}"><div class="week-date">${wd.label}<span class="week-dow">${wd.dow}${wd.isToday?'·오늘':''}</span></div>${body}</div>`;
+  }
   function renderCard(name) {
-    const m = memberMap[name];
-    if (!m) return `<div class="member-card"><div class="member-top"><div class="member-name-wrap"><div class="avatar">${name.charAt(0)}</div><div class="member-name">${name}</div></div></div><div class="work-box empty">오늘 업무 계획 없음</div></div>`;
-    const hasOT  = otRows.some(r => r['담당자'] === m.name && isInMonth(r, thisYear, thisMonth));
-    const work   = (m.todayWork    || '').trim();
-    const tmrWork = (m.tomorrowWork || '').trim();
+    const m = memberMap[name] || { name, week:{} };
+    const hasOT = otRows.some(r => r['담당자'] === name && isInMonth(r, thisYear, thisMonth));
+    const branch = BRANCH_OF[name] || '본부';
     return `<div class="member-card ${hasOT?'has-overtime':''}">
       <div class="member-top">
-        <div class="member-name-wrap"><div class="avatar">${m.name.charAt(0)}</div><div class="member-name">${m.name}</div></div>
+        <div class="member-name-wrap"><div class="avatar">${name.charAt(0)}</div><div class="member-name">${name}</div><span class="branch-badge">${branch}</span></div>
         ${hasOT ? '<span class="ot-badge">🕐 연장근무</span>' : ''}
       </div>
-      <div class="work-days">
-        <div><span class="work-day-label today">📅 오늘</span><div class="work-box ${work?'':'empty'}">${work?esc(work):'업무 계획 없음'}</div></div>
-        <div><span class="work-day-label">📅 내일</span><div class="work-box tomorrow ${tmrWork?'':'empty'}">${tmrWork?esc(tmrWork):'업무 계획 없음'}</div></div>
+      <div class="branch-feed" data-branch-member="${name}"></div>
+      <div class="hq-todo" data-todo-member="${name}">
+        <span class="branch-label" style="color:#2e7d32;">📌 본부 점검 할일</span>
+        <div class="hq-todo-list"></div>
+        <div class="hq-todo-add">
+          <input type="text" placeholder="할일 입력 후 Enter" onkeydown="if(event.key==='Enter'){addBranchTodo('${name}', this)}">
+          <button onclick="addBranchTodo('${name}', this.parentNode.querySelector('input'))">추가</button>
+        </div>
+      </div>
+      <div class="week-plan">
+        <span class="branch-label" style="color:#888;">🗒 업무계획 (이번 주)</span>
+        <div class="week-grid">${WEEK_DATES.map(wd => weekCell(m, wd)).join('')}</div>
       </div>
     </div>`;
   }
-  grid.innerHTML = MEMBER_PAIRS.map(pair =>
-    `<div class="pair-group">${pair.map(name => renderCard(name)).join('')}</div>`
-  ).join('');
+  grid.innerHTML = MEMBERS.map(name => renderCard(name)).join('');
 }
 
 /* ── 구인 현황 ── */
@@ -590,65 +683,112 @@ function renderRecruit(recruit) {
 }
 
 /* ── Slack (두 채널) ── */
-function renderSlack(slack) {
-  const el        = document.getElementById('slack-content');
+let hideHqDone = false;
+
+function renderSlack(slack, hqIssues) {
+  const el = document.getElementById('slack-content');
+  const hr = '<hr style="border:none;border-top:1px dashed #e0e0e0;margin:18px 0;">';
+  el.innerHTML = `<div id="hq-board"></div>${hr}<div id="channel-issues"></div>`;
+  renderHqBoard(hqIssues || []);
+  renderChannelIssues(slack);
+}
+
+/* ── 내 이슈/할일 보드 (상단·메인) ── */
+function renderHqBoard(issues) {
+  issues = issues || [];
+  window.__hqIssues = issues;
+  const undoneCount = issues.filter(i => !i.done).length;
+  document.getElementById('slack-count').textContent = undoneCount;
+  document.getElementById('tc-slack').textContent    = undoneCount;
+  const board = document.getElementById('hq-board');
+  if (!board) return;
+  const visible = hideHqDone ? issues.filter(i => !i.done) : issues;
+  let items = visible.map(i => `
+    <div class="hqi-item ${i.done?'done':''}">
+      <input type="checkbox" class="hqi-chk" ${i.done?'checked':''} onchange="toggleHqIssue('${i.id}', this.checked)">
+      <span class="hqi-text">${esc(i.text)}</span>
+      ${i.src?'<span class="hqi-src">채널</span>':''}
+      <span class="hqi-date">${esc((i.regDt||'').substring(5,10))}</span>
+      <span class="hqi-del" onclick="deleteHqIssue('${i.id}')" title="삭제">🗑</span>
+    </div>`).join('');
+  if (!visible.length) items = '<div class="state-msg" style="height:44px;">등록된 이슈가 없습니다. 위 칸에 입력해보세요.</div>';
+  board.innerHTML = `
+    <div class="hqi-card">
+      <div class="hqi-head">📝 내 이슈 / 할일 <span class="hqi-sub">— 직접 적고 체크로 관리</span>
+        <label class="hqi-hide"><input type="checkbox" ${hideHqDone?'checked':''} onchange="toggleHideDone(this.checked)"> 완료 숨기기</label>
+      </div>
+      <div class="hqi-add">
+        <input type="text" id="hqi-input" placeholder="새 이슈 입력 후 Enter (예: 여수점 계약종료 사후처리 확인)" onkeydown="if(event.key==='Enter')addHqIssue()">
+        <button onclick="addHqIssue()">추가</button>
+      </div>
+      ${items}
+    </div>`;
+}
+
+function toggleHideDone(v) { hideHqDone = v; renderHqBoard(window.__hqIssues || []); }
+function refreshHqIssues() { return gsRun('clientGetHqIssues').then(d => renderHqBoard(d || [])).catch(() => {}); }
+function addHqIssue() {
+  const inp = document.getElementById('hqi-input'); if (!inp) return;
+  const t = (inp.value || '').trim(); if (!t) return;
+  inp.value = ''; inp.disabled = true;
+  gsRun('clientAddHqIssue', t, '').then(() => { inp.disabled = false; refreshHqIssues(); inp.focus(); }).catch(() => { inp.disabled = false; });
+}
+function addChannelAsIssue(btn) {
+  const t = decodeURIComponent(btn.dataset.text || ''); if (!t) return;
+  const short = t.length > 120 ? t.substring(0,120) + '…' : t;
+  btn.disabled = true; btn.textContent = '담는 중…';
+  gsRun('clientAddHqIssue', short, '채널').then(() => { btn.textContent = '✓ 담음'; refreshHqIssues(); }).catch(() => { btn.disabled = false; btn.textContent = '+ 이슈'; });
+}
+function toggleHqIssue(id, done) { gsRun('clientToggleHqIssue', id, done).then(() => refreshHqIssues()).catch(() => {}); }
+function deleteHqIssue(id) { if (!confirm('이 이슈를 삭제할까요?')) return; gsRun('clientDeleteHqIssue', id).then(() => refreshHqIssues()).catch(() => {}); }
+
+/* ── 채널 이슈 (하단·참고) ── */
+function renderChannelIssues(slack) {
+  const el = document.getElementById('channel-issues');
+  if (!el) return;
   const leaderData  = slack?.leader  || { messages: [] };
   const managerData = slack?.manager || { messages: [] };
-
-  if (leaderData.error && managerData.error) {
+  const noticeData  = slack?.notice  || { messages: [] };
+  if (leaderData.error && managerData.error && noticeData.error) {
     el.innerHTML = `<div class="err-box">❌ 슬랙 오류: ${esc(leaderData.error)}</div>`;
     return;
   }
-
   const sixMonthsAgo = Date.now() - 180 * 24 * 60 * 60 * 1000;
   const isRecent = m => parseFloat(m.ts) * 1000 >= sixMonthsAgo;
-
-  function buildChannelBlock(data, channelLabel, channelCls, itemCls) {
+  function buildChannelBlock(data, channelLabel, channelCls) {
     const messages = data.messages || [];
     const undone = messages.filter(m => !m.done && isRecent(m)).sort((a,b) => parseFloat(b.ts)-parseFloat(a.ts));
     const done   = messages.filter(m =>  m.done && isRecent(m)).sort((a,b) => parseFloat(b.ts)-parseFloat(a.ts));
-    function renderItem(m) {
-      return `<div class="todo-item ${itemCls} ${m.done?'done':''}">
-        <div class="todo-check">${m.done?'✅':'⬜'}</div>
-        <div class="todo-body">
-          <div class="todo-text">${esc(m.text)}</div>
-          <div class="todo-meta">
-            <span class="todo-date">${tsToDate(m.ts)}</span>
-            ${m.replyCount>0?`<span class="todo-thread">💬 ${m.replyCount}개 댓글</span>`:''}
-            ${m.permalink?`<a class="slack-link" href="${m.permalink}" target="_blank">🔗 Slack</a>`:''}
-          </div>
+    function item(m) {
+      const tx = (m.text||'').length>140 ? m.text.substring(0,140)+'…' : (m.text||'');
+      return `<div class="ci-item ${channelCls} ${m.done?'done':''}">
+        <div class="ci-text">${m.done?'✅ ':''}${esc(tx)}</div>
+        <div class="ci-meta">
+          <span class="ci-date">${tsToDate(m.ts)}</span>
+          ${m.replyCount>0?`<span class="ci-thread">💬 ${m.replyCount}</span>`:''}
+          ${m.permalink?`<a class="slack-link" href="${m.permalink}" target="_blank">🔗 Slack</a>`:''}
+          <button class="ci-add" data-text="${encodeURIComponent(m.text||'')}" onclick="addChannelAsIssue(this)">+ 이슈</button>
         </div>
       </div>`;
     }
-    let html = `<div class="slack-channel-block">
-      <div class="slack-channel-title ${channelCls}">${channelLabel} <span style="font-size:11px;font-weight:400;">${undone.length}건 미완료</span></div>`;
+    let html = `<div class="ci-block"><div class="ci-title ${channelCls}">${channelLabel} <span style="font-size:11px;font-weight:400;">${undone.length}건</span></div>`;
     if (!undone.length && !done.length) {
-      html += '<div class="state-msg" style="height:50px;">등록된 이슈가 없습니다.</div>';
+      html += '<div class="state-msg" style="height:44px;">해당 이슈 없음</div>';
     } else {
-      html += `<div class="todo-list">${undone.map(renderItem).join('')}</div>`;
+      html += undone.map(item).join('');
       if (done.length) {
-        const doneByMonth = {};
-        done.forEach(m => { const d=new Date(parseFloat(m.ts)*1000); const key=`${d.getFullYear()}년 ${d.getMonth()+1}월`; if(!doneByMonth[key])doneByMonth[key]=[]; doneByMonth[key].push(m); });
-        const monthSections = Object.entries(doneByMonth).map(([month,items]) => `
-          <div class="done-month-section">
-            <div class="done-section-header" onclick="toggleDoneSection(this)">📅 ${month} <span class="done-count">${items.length}건</span><span class="done-toggle">▼ 펼치기</span></div>
-            <div class="done-section-body" style="display:none;"><div class="todo-list">${items.map(renderItem).join('')}</div></div>
-          </div>`).join('');
-        html += `<div class="done-section"><div class="done-section-title">✅ 완료된 이슈 · ${done.length}건</div>${monthSections}</div>`;
+        html += `<div class="done-section"><div class="done-section-header" onclick="toggleDoneSection(this)">✅ 완료 ${done.length}건<span class="done-toggle">▼ 펼치기</span></div><div class="done-section-body" style="display:none;">${done.map(item).join('')}</div></div>`;
       }
     }
     html += '</div>';
-    return { html, undoneCount: undone.length };
+    return html;
   }
-
-  const leader  = buildChannelBlock(leaderData,  '📢 리더채널',  'slack-ch-leader',  '');
-  const manager = buildChannelBlock(managerData, '💼 매니져방', 'slack-ch-manager', 'manager');
-
-  el.innerHTML = leader.html + '<hr style="border:none;border-top:1px dashed #e0e0e0;margin:8px 0 24px;">' + manager.html;
-
-  const totalUndone = leader.undoneCount + manager.undoneCount;
-  document.getElementById('slack-count').textContent = totalUndone;
-  document.getElementById('tc-slack').textContent    = totalUndone;
+  const head = `<div class="ci-head">📡 채널 이슈 <span class="hqi-sub">참고 — 글에서 [+ 이슈]로 위 목록에 담기</span></div>`;
+  const kw   = `<div class="ci-kw">🔑 이슈 키워드: 사고·민원·해지·항의·중단·긴급·시정·분쟁 <span style="opacity:.6;">(이슈키워드 시트에서 편집)</span></div>`;
+  el.innerHTML = head + kw
+    + buildChannelBlock(leaderData,  '📢 리더채널 <span style="font-size:11px;font-weight:400;opacity:.85;">· 통합요양</span>',  'slack-ch-leader')
+    + buildChannelBlock(noticeData,  '📋 지점소통 <span style="font-size:11px;font-weight:400;opacity:.85;">· 업무</span>',  'slack-ch-notice')
+    + buildChannelBlock(managerData, '💼 매니져방 <span style="font-size:11px;font-weight:400;opacity:.85;">· 이흥덕(통합요양)</span>', 'slack-ch-manager');
 }
 
 function toggleDoneSection(header) {
@@ -697,6 +837,40 @@ function renderOT(rows, today) {
       </table></div>`;
   }
   el.innerHTML = buildTable(todayRows, `📅 오늘 · ${dateLabel(todayD)}`) + buildTable(tomorrowRows, `📅 내일 · ${dateLabel(tomorrowD)}`);
+}
+
+function applyBranchTodos(data) {
+  document.querySelectorAll('[data-todo-member]').forEach(box => {
+    const name = box.dataset.todoMember;
+    const list = box.querySelector('.hq-todo-list');
+    const items = (data && data[name]) || [];
+    list.innerHTML = items.length ? items.map(t => `
+      <div class="hq-todo-item ${t.done?'done':''}">
+        <input type="checkbox" ${t.done?'checked':''} onchange="toggleBranchTodo('${t.id}', this.checked)">
+        <span style="flex:1;">${esc(t.text)}</span>
+      </div>`).join('') : '<div style="font-size:12px;color:#bbb;">지시사항 없음</div>';
+  });
+}
+function refreshTodos() { gsRun('clientGetBranchTodos').then(applyBranchTodos).catch(() => {}); }
+function addBranchTodo(member, inputEl) {
+  const text = (inputEl.value || '').trim(); if (!text) return;
+  inputEl.value = '';
+  gsRun('clientAddBranchTodo', member, text).then(res => { if (res && res.ok) refreshTodos(); else alert('추가 실패'); }).catch(e => alert(e.message));
+}
+function toggleBranchTodo(id, done) {
+  gsRun('clientToggleBranchTodo', id, done).then(res => { if (res && res.ok) refreshTodos(); }).catch(() => {});
+}
+
+function applyBranchChannels(data) {
+  if (!data) return;
+  Object.keys(data).forEach(name => {
+    const el = document.querySelector(`[data-branch-member="${name}"]`);
+    if (!el) return;
+    const items = data[name] || [];
+    if (!items.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<span class="branch-label">📡 지점 채널 업무글</span>` + items.map(it => `
+      <div class="branch-item"><span style="flex:1;">${esc(it.text)}</span>${it.permalink?`<a class="slack-link" href="${it.permalink}" target="_blank">🔗</a>`:''}</div>`).join('');
+  });
 }
 
 function approveOt(id) {
