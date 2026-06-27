@@ -470,7 +470,7 @@
    <div id="finalMxWrap" class="hide" style="overflow:auto"><div id="finalTable"></div></div>
   </div>
  </section>
- <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.6 (로그인 유지[F5에도 안 튕김]·새로고침 자동 최신·🔄버튼 · 지점 신청·관리자 승인/조회 · 중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
+ <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.7 (새 버전 알림 팝업 · 로그인 유지[F5에도 안 튕김]·새로고침 자동 최신·🔄버튼 · 지점 신청·관리자 승인/조회 · 중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
 </div>
 
 <script>
@@ -563,6 +563,25 @@
  const SUGGEST_URL='https://script.google.com/macros/s/AKfycbxZGgdw2Fl9SANxGGimizyIn0pm3LvgoYr1Hp9GNUaPfX_h2u3cjkTYR5RDdinZ0pLFvw/exec';
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
+ // ===== 새 버전 알림 =====
+ const APP_VERSION='5.7';
+ let updateShownFor='';
+ function checkUpdate(){
+  fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
+   if(v&&v.version&&v.version!==APP_VERSION&&updateShownFor!==v.version)showUpdatePopup(v);
+  }).catch(function(){});
+ }
+ function showUpdatePopup(v){
+  updateShownFor=v.version;
+  var old=document.getElementById('updateBanner');if(old)old.remove();
+  var d=document.createElement('div');d.id='updateBanner';
+  d.style.cssText='position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:99999;background:var(--surface);border:2px solid var(--info);border-radius:12px;padding:14px 18px;box-shadow:0 6px 22px rgba(0,0,0,.18);max-width:92%;width:380px;font-family:inherit;text-align:left';
+  var notes=(v.notes||[]).map(function(n){return '• '+n;}).join('<br>');
+  d.innerHTML='<div style="font-weight:700;color:var(--info);font-size:15px;margin-bottom:6px">🆕 새 버전 '+v.version+' 이 나왔어요!</div>'+(notes?'<div style="font-size:13px;color:var(--tx);margin-bottom:8px;line-height:1.5">'+notes+'</div>':'')+'<div style="font-size:13px;color:var(--tx2);margin-bottom:12px">아래 버튼을 눌러 새로고침하면 최신으로 바뀝니다.</div><div style="text-align:right"><button class="btn" id="updateLaterBtn">나중에</button> <button class="btn pri" id="updateReloadBtn">지금 새로고침</button></div>';
+  document.body.appendChild(d);
+  document.getElementById('updateReloadBtn').onclick=function(){try{location.reload(true);}catch(e){location.reload();}};
+  document.getElementById('updateLaterBtn').onclick=function(){d.remove();};
+ }
  let centralBranches=null; // 중앙 승인 지점 목록(null=아직 못 받음 → 오프라인/로컬)
  let centralSaveTimer=null;
  function centralGet(action){return fetch(CENTRAL_URL+'?action='+encodeURIComponent(action)).then(function(r){return r.json();});}
@@ -1316,6 +1335,7 @@
  })();
  tryAutoLogin();
  save();
+ setTimeout(checkUpdate,3000);setInterval(checkUpdate,600000);window.addEventListener('focus',checkUpdate);
 </script>
 </body>
 </html>
