@@ -129,6 +129,7 @@
  <div class="card noprint" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px">
   <span style="font-weight:500;font-size:14px">현재 지점: <b id="curBranch" style="color:var(--info)"></b></span>
   <span id="syncBadge" style="font-size:12px;font-weight:500"></span>
+  <button class="btn" id="refreshBtn" title="중앙에서 최신 데이터를 다시 받아옵니다 (다른 사람이 수정한 내용 반영)">🔄 새로고침</button>
   <button class="btn" id="changeBranch">지점 변경 / 로그아웃</button>
   <span style="width:1px;height:20px;background:var(--line2)"></span>
   <button class="btn" id="exportBtn" title="모든 지점 데이터를 백업 파일 하나로 저장합니다">💾 전체 백업</button>
@@ -469,7 +470,7 @@
    <div id="finalMxWrap" class="hide" style="overflow:auto"><div id="finalTable"></div></div>
   </div>
  </section>
- <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.5 (지점 신청·관리자 승인/조회 · 중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
+ <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.6 (로그인 유지[F5에도 안 튕김]·새로고침 자동 최신·🔄버튼 · 지점 신청·관리자 승인/조회 · 중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
 </div>
 
 <script>
@@ -628,16 +629,36 @@
   const v=document.getElementById('loginPwInput').value.trim();const msg=document.getElementById('loginPwMsg');
   if(!/^\d{4}$/.test(v)){msg.style.color='var(--danger)';msg.textContent='숫자 4자리를 입력하세요';return;}
   const b=loginBranch;
-  function localLogin(){const cur=getPw(b);if(cur&&cur!==v){msg.style.color='var(--danger)';msg.textContent='비밀번호가 틀립니다';return false;}if(!cur)setPw(b,v);if(b!==branch)switchBranch(b);else setBranch(b);renderBranchTabs();msg.textContent='';document.getElementById('loginOv').classList.add('hide');return true;}
+  function localLogin(){const cur=getPw(b);if(cur&&cur!==v){msg.style.color='var(--danger)';msg.textContent='비밀번호가 틀립니다';return false;}if(!cur)setPw(b,v);if(b!==branch)switchBranch(b);else setBranch(b);adminViewMode=false;try{localStorage.setItem('geunmuLoggedIn','1');}catch(e){}renderBranchTabs();msg.textContent='';document.getElementById('loginOv').classList.add('hide');return true;}
   if(!inCentral(b)){localLogin();return;}
   msg.style.color='var(--tx3)';msg.textContent='확인 중…';
   centralPost({action:'load',branch:b,pw:v}).then(function(res){
-   if(res&&res.ok){setPw(b,v);if(b!==branch){save();setBranch(b);branch=b;}else setBranch(b);var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){data=null;}S=normalize(data||JSON.parse(JSON.stringify(DEFAULT)));if(centralSaveTimer)clearTimeout(centralSaveTimer);try{localStorage.setItem(stateKey(b),JSON.stringify(S));}catch(e){}renderBranchTabs();refreshAll();msg.textContent='';document.getElementById('loginOv').classList.add('hide');setSync('ok');}
+   if(res&&res.ok){setPw(b,v);if(b!==branch){save();setBranch(b);branch=b;}else setBranch(b);var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){data=null;}S=normalize(data||JSON.parse(JSON.stringify(DEFAULT)));if(centralSaveTimer)clearTimeout(centralSaveTimer);adminViewMode=false;try{localStorage.setItem(stateKey(b),JSON.stringify(S));localStorage.setItem('geunmuLoggedIn','1');}catch(e){}renderBranchTabs();refreshAll();msg.textContent='';document.getElementById('loginOv').classList.add('hide');setSync('ok');}
    else if(res&&res.error==='비번틀림'){msg.style.color='var(--danger)';msg.textContent='비밀번호가 틀립니다';}
    else if(res&&res.error==='승인대기중'){msg.style.color='var(--danger)';msg.textContent='아직 승인되지 않은 지점입니다 (관리자 승인 대기)';}
    else if(res&&res.error==='없는지점'){msg.style.color='var(--danger)';msg.textContent='등록되지 않은 지점입니다';}
    else{msg.style.color='var(--danger)';msg.textContent='오류: '+((res&&res.error)||'알수없음');}
   }).catch(function(){if(localLogin())setTimeout(function(){alert('⚠ 인터넷 연결이 없어 이 컴퓨터의 마지막 저장본으로 열었습니다. 연결 후 다시 로그인하면 최신본을 받아옵니다.');},200);});
+ }
+ function tryAutoLogin(){
+  var b=getBranch();
+  if(localStorage.getItem('geunmuLoggedIn')==='1'&&b&&getPw(b)){
+   centralGet('branches').then(function(res){if(res&&res.ok&&Array.isArray(res.branches))centralBranches=res.branches;}).catch(function(){}).then(function(){
+    loginBranch=b;var inp=document.getElementById('loginPwInput');if(inp)inp.value=getPw(b);submitLogin();
+   });
+  }else{showLogin();}
+ }
+ function logout(){try{localStorage.removeItem('geunmuLoggedIn');}catch(e){}adminViewMode=false;var el=document.getElementById('syncBadge');if(el)el.textContent='';showLogin();}
+ function refreshNow(){
+  if(adminViewMode){var el0=document.getElementById('syncBadge');if(el0){el0.textContent='새로고침은 로그인 후 가능';}return;}
+  if(!branch){return;}
+  if(!inCentral(branch)){refreshAll();return;}
+  var pw=getPw(branch);if(!pw){refreshAll();return;}
+  setSync('save');var rb=document.getElementById('refreshBtn');if(rb){rb.disabled=true;rb.textContent='⏳';}
+  centralPost({action:'load',branch:branch,pw:pw}).then(function(res){
+   if(res&&res.ok){var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){}if(data){S=normalize(data);if(centralSaveTimer)clearTimeout(centralSaveTimer);try{localStorage.setItem(stateKey(branch),JSON.stringify(S));}catch(e){}refreshAll();}setSync('ok');}
+   else{setSync('off');}
+  }).catch(function(){setSync('off');}).then(function(){if(rb){rb.disabled=false;rb.textContent='🔄 새로고침';}});
  }
  function switchBranch(b){if(b===branch)return;save();setBranch(b);branch=b;let ns=null;try{ns=JSON.parse(localStorage.getItem(stateKey(b)));}catch(e){ns=null;}S=normalize(ns||JSON.parse(JSON.stringify(DEFAULT)));save();refreshAll();}
  function resetCurrent(){if(!confirm('['+branch+'] 지점의 입력 내용을 기본값으로 초기화할까요? (저장본은 유지됩니다)'))return;S=normalize(JSON.parse(JSON.stringify(DEFAULT)));save();refreshAll();}
@@ -1265,7 +1286,8 @@
  document.getElementById('saveAllBtn').onclick=saveAll;
  document.getElementById('resetBtn').onclick=resetCurrent;
  showSavedAt();renderSaveList();renderBranchTabs();
- document.getElementById('changeBranch').onclick=showLogin;
+ document.getElementById('changeBranch').onclick=logout;
+ (function(){var rfb=document.getElementById('refreshBtn');if(rfb)rfb.onclick=refreshNow;})();
  (function(){var eb=document.getElementById('exportBtn');if(eb)eb.onclick=exportData;var ib=document.getElementById('importBtn'),ifl=document.getElementById('importFile');if(ib&&ifl){ib.onclick=function(){ifl.click();};ifl.onchange=function(){var f=ifl.files&&ifl.files[0];if(f)importData(f);ifl.value='';};}var sgb=document.getElementById('suggestBtn');if(sgb)sgb.onclick=openSuggest;var sgs=document.getElementById('sgSend');if(sgs)sgs.onclick=sendSuggestion;})();
  document.getElementById('loginPwBtn').onclick=submitLogin;
  document.getElementById('loginPwCancel').onclick=()=>document.getElementById('loginPwArea').classList.add('hide');
@@ -1292,7 +1314,7 @@
   if(et)et.onclick=function(){loginEditMode=!loginEditMode;et.textContent=loginEditMode?'✓ 완료':'✏️ 이름 관리';renderLoginBranches();};
   var rb=document.getElementById('loginRestoreBtn'),ifl2=document.getElementById('importFile');if(rb&&ifl2)rb.onclick=function(){ifl2.click();};
  })();
- showLogin();
+ tryAutoLogin();
  save();
 </script>
 </body>
