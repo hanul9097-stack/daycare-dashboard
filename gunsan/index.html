@@ -190,22 +190,81 @@
 </style>
 </head>
 <body>
+<div id="gsLoginOv" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.45);align-items:center;justify-content:center;font-family:inherit">
+  <div style="position:relative;background:#fff;border-radius:16px;padding:24px;max-width:440px;width:92%;box-shadow:0 10px 40px rgba(0,0,0,.25);max-height:90vh;overflow:auto">
+    <button onclick="gsLocalOnly()" title="닫기 (이 컴퓨터에서만 사용)" style="position:absolute;top:12px;right:14px;width:30px;height:30px;border:0;border-radius:50%;background:#f1f1f1;color:#555;font-size:18px;line-height:1;cursor:pointer">×</button>
+    <div style="font-size:18px;font-weight:800;color:#185FA5;margin-bottom:4px;padding-right:28px"><i class="ti ti-route"></i> 송영 코스 관리 — 지점 로그인</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px">지점을 선택해 로그인하거나, 아래에서 새 지점을 신청하세요.</div>
+    <div id="gsLoginBranches" style="margin-bottom:10px;display:flex;flex-wrap:wrap"></div>
+    <div id="gsLoginPwArea" style="display:none;border-top:1px solid #eee;padding-top:12px;margin-bottom:12px">
+      <div id="gsLoginPwTitle" style="font-size:13px;font-weight:700;margin-bottom:6px"></div>
+      <input id="gsLoginPw" type="password" inputmode="numeric" maxlength="4" placeholder="비밀번호 4자리" onkeydown="if(event.key==='Enter')gsSubmitLogin()" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:14px;margin-bottom:6px">
+      <input id="gsLoginName" placeholder="사용자 이름 (수정 기록에 남습니다)" onkeydown="if(event.key==='Enter')gsSubmitLogin()" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:14px;margin-bottom:8px">
+      <button onclick="gsSubmitLogin()" style="width:100%;padding:9px;border:0;border-radius:8px;background:#185FA5;color:#fff;font-size:15px;font-weight:600;cursor:pointer">로그인</button>
+      <div id="gsLoginMsg" style="font-size:12px;margin-top:6px"></div>
+    </div>
+    <div style="border-top:1px solid #eee;padding-top:12px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px">＋ 새 지점 신청 <span style="font-weight:400;color:#888;font-size:11px">(승인 후 사용 가능)</span></div>
+      <input id="gsReqName" placeholder="지점명 (예: 군산점)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:14px;margin-bottom:6px">
+      <input id="gsReqPw" type="password" inputmode="numeric" maxlength="4" placeholder="비밀번호 4자리" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:14px;margin-bottom:8px">
+      <button onclick="gsDoRequest()" style="width:100%;padding:9px;border:1px solid #185FA5;border-radius:8px;background:#fff;color:#185FA5;font-size:14px;font-weight:600;cursor:pointer">신청하기</button>
+      <div id="gsReqMsg" style="font-size:12px;margin-top:6px"></div>
+      <div style="font-size:11px;color:#aaa;margin-top:8px">※ 이 컴퓨터에 입력해 둔 자료가 있으면 신청 시 함께 올라가, 승인 후 그대로 이어집니다.</div>
+    </div>
+    <div style="text-align:center;margin-top:14px;border-top:1px solid #eee;padding-top:10px;display:flex;justify-content:space-between;align-items:center">
+      <button onclick="gsLocalOnly()" style="font-size:12px;color:#888;background:transparent;border:0;cursor:pointer;text-decoration:underline">인터넷 없이 이 컴퓨터에서만 사용</button>
+      <button onclick="gsOpenAdmin()" style="font-size:12px;color:#185FA5;background:transparent;border:0;cursor:pointer">🔧 관리자</button>
+    </div>
+    <div id="gsAdminArea" style="display:none;border-top:1px solid #eee;margin-top:10px;padding-top:10px">
+      <input id="gsAdminPw" type="password" placeholder="관리자 비밀번호" onkeydown="if(event.key==='Enter')gsAdminAuth()" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:14px;margin-bottom:6px">
+      <button onclick="gsAdminAuth()" style="width:100%;padding:9px;border:1px solid #185FA5;border-radius:8px;background:#fff;color:#185FA5;font-size:14px;font-weight:600;cursor:pointer">관리자 로그인</button>
+      <div id="gsAdminMsg" style="font-size:12px;margin-top:6px"></div>
+      <div id="gsAdminPanel" style="display:none;margin-top:10px">
+        <div style="font-size:12px;font-weight:700;margin:6px 0 2px;color:#9A3412">⏳ 승인 대기</div>
+        <div id="gsAdminPending"></div>
+        <div style="font-size:12px;font-weight:700;margin:12px 0 2px;color:#0F6E56">✅ 승인된 지점 <span style="font-weight:400;color:#aaa;font-size:11px">(조회=읽기전용)</span></div>
+        <div id="gsAdminApproved"></div>
+        <div style="margin-top:10px;text-align:right"><button onclick="gsAdminLog()" style="font-size:12px;padding:4px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer">📝 전체 수정 기록 보기</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="gsAdminBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#fff8f3;border-bottom:2px solid #9A3412;padding:6px 12px;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-family:inherit">
+  <span style="font-weight:700;color:#9A3412">🔧 관리자</span>
+  <span id="gsAdminMode" style="font-weight:600"></span>
+  <span style="color:#aaa">|</span>
+  <span id="gsAdminChips" style="display:inline-flex;gap:4px;flex-wrap:wrap"></span>
+  <span style="flex:1;min-width:10px"></span>
+  <button id="gsAdminEditBtn" onclick="gsAdminEditToggle()" style="font-size:12px;padding:3px 10px;border:1px solid #9A3412;border-radius:6px;background:#fff;color:#9A3412;cursor:pointer">이 지점 수정</button>
+  <button id="gsAdminSaveBtn" onclick="gsAdminSave()" style="display:none;font-size:12px;padding:3px 10px;border:0;border-radius:6px;background:#9A3412;color:#fff;cursor:pointer">💾 이 지점에 저장</button>
+  <button onclick="gsAdminLog()" style="font-size:12px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer">📝 수정기록</button>
+  <button onclick="gsAdminExit()" style="font-size:12px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer">나가기</button>
+</div>
 <div class="wrap">
   <div class="no-print">
-    <div class="page-title"><i class="ti ti-route" style="color:#185FA5"></i>차량송영코스 관리 <span id="appVer" title="현재 프로그램 버전 — 새 버전이 나오면 자동으로 알려드립니다" style="font-size:12px;font-weight:600;color:#185FA5;background:#E8F0FE;border-radius:10px;padding:1px 9px;vertical-align:middle;cursor:default"></span></div>
+    <div class="page-title"><i class="ti ti-route" style="color:#185FA5"></i>차량송영코스 관리 <span id="appVer" title="현재 프로그램 버전 — 새 버전이 나오면 자동으로 알려드립니다" style="font-size:12px;font-weight:600;color:#185FA5;background:#E8F0FE;border-radius:10px;padding:1px 9px;vertical-align:middle;cursor:default"></span>
+      <span style="float:right;font-size:12px;display:inline-flex;align-items:center;gap:8px;font-weight:400">
+        <span id="gsBranchName" style="color:#185FA5;font-weight:600"></span>
+        <span id="gsSyncBadge"></span>
+        <button onclick="gsLogout()" title="로그아웃(지점 전환)" style="font-size:11px;padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer">로그아웃</button>
+      </span></div>
     <div class="page-sub">기존 코스 점검 · 새 코스 생성 · 비교 선택 · 가이드 출력</div>
     <div class="tabs">
-      <button class="tbtn active" onclick="sw(0)"><i class="ti ti-database"></i>데이터 입력</button>
-      <button class="tbtn" onclick="sw(1)"><i class="ti ti-search"></i>기존 코스 점검</button>
-      <button class="tbtn" onclick="sw(2)"><i class="ti ti-git-compare"></i>코스 비교 & 선택</button>
-      <button class="tbtn" onclick="sw(3)"><i class="ti ti-users-group"></i>직원 매칭</button>
-      <button class="tbtn" onclick="sw(4)"><i class="ti ti-file-text"></i>가이드 출력</button>
-      <button class="tbtn" onclick="sw(5)" style="color:#9A3412;font-weight:600"><i class="ti ti-bus"></i>군산 생성</button>
+      <button class="tbtn" onclick="sw(0)" title="기존(레거시) 방식 — 통합 탭으로 이전 예정"><i class="ti ti-database"></i>기존: 데이터</button>
+      <button class="tbtn" onclick="sw(1)" title="기존(레거시) 방식"><i class="ti ti-search"></i>기존: 점검</button>
+      <button class="tbtn" onclick="sw(2)" title="기존(레거시) 방식"><i class="ti ti-git-compare"></i>기존: 비교</button>
+      <button class="tbtn" onclick="sw(3)" title="기존(레거시) 방식"><i class="ti ti-users-group"></i>기존: 직원</button>
+      <button class="tbtn" onclick="sw(4)" title="기존(레거시) 방식"><i class="ti ti-file-text"></i>기존: 출력</button>
+      <span style="align-self:center;color:var(--border);padding:0 2px">│</span>
+      <button class="tbtn active" onclick="sw(5)" style="color:#0F6E56;font-weight:700"><i class="ti ti-route-2"></i>송영 코스 (통합)</button>
     </div>
   </div>
 
   <!-- ═══ TAB 0: 데이터 입력 ═══ -->
-  <div id="p0" class="panel active">
+  <div id="p0" class="panel">
+    <div style="background:#FFF7ED;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#9A3412">
+      <i class="ti ti-info-circle"></i> <b>기존(레거시) 방식</b>입니다. 새로운 <b style="color:#0F6E56">「송영 코스 (통합)」</b> 탭에 기존 코스 비교·이용시간 보존·기사 자택배정까지 합쳐졌어요. 가능하면 통합 탭을 사용하세요. (이 탭은 이전 호환을 위해 당분간 유지)
+    </div>
 
     <!-- 송영표 업로드 (여러 개 선택 → 업로드 시작) -->
     <div id="upload-area">
@@ -391,9 +450,9 @@
   </div>
 
   <!-- ═══ TAB 5: 군산 생성 모드 ═══ -->
-  <div id="p5" class="panel">
+  <div id="p5" class="panel active">
     <div class="card" style="border-top:3px solid #9A3412;background:linear-gradient(180deg,#FFF7F2,transparent)">
-      <div class="card-title" style="font-size:16px"><i class="ti ti-bus" style="color:#9A3412"></i>군산 생성 모드 <span style="font-size:12px;font-weight:500;color:var(--text2)">— 어르신·차량·직원으로 처음부터 송영표 만들기</span></div>
+      <div class="card-title" style="font-size:16px"><i class="ti ti-route-2" style="color:#0F6E56"></i>송영 코스 생성·관리 <span style="font-size:12px;font-weight:500;color:var(--text2)">— 어르신·차량·직원 입력 → 최적 생성 · 기존 코스 비교 · 이용시간 보존 · 기사 자택배정</span></div>
       <div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.6">① 어르신 → ② 차량 → ③ 직원 → (이후) 자동 편성·출력. 각 칸은 <b>입력 즉시 자동 저장</b>되고, 헤더의 <b>저장</b> 버튼으로도 저장됩니다. 제목을 누르면 접고 펼칠 수 있어요.</div>
     </div>
 
@@ -461,7 +520,8 @@
       <div onclick="gsAcc('staff')" style="display:flex;align-items:center;gap:8px;padding:13px 16px;cursor:pointer;background:linear-gradient(180deg,#F4F1FF,transparent)">
         <i id="chev-staff" class="ti ti-chevron-right" style="color:#533AB7"></i>
         <span style="font-weight:700;font-size:15px;color:#533AB7">③ 직원 <span id="cnt-staff" style="font-size:12px;font-weight:400;color:var(--text2)"></span></span>
-        <button class="btn btn-sm" style="margin-left:auto;border-color:#9A3412;color:#9A3412" onclick="event.stopPropagation();gsOvertimeShow()" title="운행이 근무시간 밖으로 나간 분(초과근무) 점검"><i class="ti ti-clock-exclamation"></i>초과근무</button>
+        <button class="btn btn-sm" style="margin-left:auto;border-color:#185FA5;color:#185FA5" onclick="event.stopPropagation();gsAutoDriversByHome()" title="기사 자택과 가까운 차량에 정 운전자 자동배정(생성 후)"><i class="ti ti-map-pin-heart"></i>자택배정</button>
+        <button class="btn btn-sm" style="border-color:#9A3412;color:#9A3412" onclick="event.stopPropagation();gsOvertimeShow()" title="운행이 근무시간 밖으로 나간 분(초과근무) 점검"><i class="ti ti-clock-exclamation"></i>초과근무</button>
         <button class="btn btn-sm" id="gs-addr-toggle" onclick="event.stopPropagation();gsToggleAddr()"><i class="ti ti-eye"></i>주소 보기</button>
         <button class="btn btn-sm" style="border-color:#533AB7;color:#533AB7" onclick="event.stopPropagation();gsSaveSection('staff')"><i class="ti ti-device-floppy"></i>저장</button>
       </div>
@@ -492,6 +552,15 @@
         <div style="margin:12px 0 10px">
           <button class="btn btn-pri" style="background:#0F6E56;border-color:#0F6E56" onclick="gsBuild()"><i class="ti ti-route-2"></i>최적 가이드 생성</button>
           <span style="font-size:11px;color:var(--text3);margin-left:6px">어르신·차량·센터 입력 후 누르세요. 주소 좌표 변환(카카오) 후 요일별로 짭니다.</span>
+        </div>
+        <div style="margin:0 0 10px;padding:8px 10px;background:#F2F7FF;border:0.5px solid #d8e4f5;border-radius:8px;font-size:12px">
+          <span style="font-weight:600;color:#185FA5"><i class="ti ti-git-compare"></i> 기존 코스 비교</span>
+          <span style="color:var(--text3)">기존 송영표를 올리면 새 코스와 동선·시간 절감을 비교합니다.</span>
+          <button class="btn btn-sm" onclick="gsExTemplate()"><i class="ti ti-file-download"></i>양식</button>
+          <button class="btn btn-sm" onclick="document.getElementById('gs-ex-file').click()"><i class="ti ti-upload"></i>기존코스 올리기</button>
+          <input type="file" id="gs-ex-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="gsExFile(event)">
+          <label style="margin-left:8px;font-size:11px;color:var(--text2)" title="기존 코스(업로드)의 어르신별 이용시간(하원−등원)을 새 코스가 유지하도록 하원을 늦춤 — 수가 보존"><input type="checkbox" id="gs-preserve" onchange="gsSetPreserve(this.checked)"> 기존 이용시간(수가) 보존</label>
+          <div id="gs-compare-panel" style="margin-top:8px"></div>
         </div>
         <div id="gs-guide-tabs" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:10px"></div>
         <div id="gs-guide"></div>
@@ -4079,12 +4148,15 @@ document.addEventListener('DOMContentLoaded', () => {
   { const vb = document.getElementById('appVer'); if (vb) vb.textContent = 'v' + APP_VERSION; }
   setTimeout(checkUpdate, 3000); setInterval(checkUpdate, 600000); window.addEventListener('focus', checkUpdate);
   gsLoad(); if (gsElders.length) gsRender();
-  gsLoad2(); gsRender2(); gsOvLoad(); gsDrvLoad(); gsAssignLoad(); gsRegLoad(); gsLoadGuide(); if (gsCourses) gsRenderGuide();
-  if (/gunsan|군산/i.test(location.pathname + location.hash)) sw(5);  // 군산 전용 주소면 군산 탭 자동
+  gsLoad2(); gsRender2(); gsOvLoad(); gsDrvLoad(); gsAssignLoad(); gsRegLoad(); gsLoadGuide();
+  try{ gsPreserveDur=localStorage.getItem('gunsanPreserveDur')==='1'; var _pc=document.getElementById('gs-preserve'); if(_pc)_pc.checked=gsPreserveDur; }catch(e){}
+  if (gsCourses) gsRenderGuide();
+  sw(5);   // 기본 = 송영 코스(통합) 시스템. 기존 탭은 '기존:'으로 남겨둠(레거시)
+  gsTryAutoLogin();   // 중앙DB: 자동 로그인 or 지점 로그인 화면
 });
 
 // ===== 새 버전 알림 (근무관리표와 동일 방식) =====
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 let updateShownFor = '';
 function checkUpdate() {
   fetch('version.json?t=' + Date.now()).then(r => r.json()).then(v => {
@@ -4102,6 +4174,102 @@ function showUpdatePopup(v) {
   document.getElementById('updateReloadBtn').onclick = () => { try { location.reload(true); } catch (e) { location.reload(); } };
   document.getElementById('updateLaterBtn').onclick = () => d.remove();
 }
+
+// ════════════════ 중앙DB 연동 (지점 로그인·승인·자동저장·수정로그) ════════════════
+const CENTRAL_URL='https://script.google.com/macros/s/AKfycbx-U1eR3irXDzloHGbtOpkBiSfj9axGNE-OqBbDBkoEPjmnIlOOxQnjksjN411R5wS5/exec';
+const GS_SYNC_KEYS=['gunsanElders','gunsanCenter','gunsanVehicles','gunsanStaff','gunsanRegions','gunsanAssign','gunsanHold','gunsanOverrides','gunsanDrivers','gunsanCourses','gunsanFinal','gunsanPreserveDur','lockedTimes','escortOverride','careTargetOverride','addrOverride','coordOverride','elderMemo','branchTimes','geoCache'];
+let centralBranches=null, gsBranch='', gsUser='', gsApplying=false, gsSaveTimer=null, gsLoginBranch='';
+let gsAdminMaster='', gsAdminView=false, gsAdminEdit=false, gsAdminApproved=[], gsLastSaved=null;
+function centralGet(action){return fetch(CENTRAL_URL+'?action='+encodeURIComponent(action)).then(r=>r.json());}
+function centralPost(p){return fetch(CENTRAL_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)}).then(r=>r.json());}
+function inCentral(b){return centralBranches&&centralBranches.indexOf(b)>=0;}
+const gsPwKey=b=>'gsPw::'+b;
+function getPw(b){try{return localStorage.getItem(gsPwKey(b))||'';}catch(e){return '';}}
+function setPw(b,v){try{localStorage.setItem(gsPwKey(b),v);}catch(e){}}
+function setSync(s){var el=document.getElementById('gsSyncBadge');if(!el)return;var m={save:['☁ 저장 중…','#888'],ok:['☁ 중앙 저장됨','#0F6E56'],off:['⚠ 동기화 실패(로컬만)','#9A3412']}[s]||['',''];el.textContent=m[0];el.style.color=m[1];}
+function gsGather(){var o={};GS_SYNC_KEYS.forEach(function(k){var v=localStorage.getItem(k);if(v!=null)o[k]=v;});return o;}
+function gsApply(obj){
+  try{ var _cur=gsGather(); if(gsParseArr(_cur.gunsanElders).length>0 || gsParseArr(_cur.gunsanVehicles).length>0){ localStorage.setItem('gunsanBackupPrev', JSON.stringify({at:Date.now(),data:_cur})); } }catch(e){}   // 덮어쓰기 전 직전 자료 백업(복구용)
+  gsApplying=true;try{GS_SYNC_KEYS.forEach(function(k){if(obj&&obj[k]!=null)localStorage.setItem(k,obj[k]);else localStorage.removeItem(k);});}finally{gsApplying=false;}gsLastSaved=gsGather();gsReloadFromStorage();}
+function gsRestoreBackup(){
+  var raw;try{raw=localStorage.getItem('gunsanBackupPrev');}catch(e){}
+  if(!raw){ alert('백업된 직전 자료가 없습니다.'); return; }
+  var bk;try{bk=JSON.parse(raw);}catch(e){ alert('백업을 읽지 못했습니다.'); return; }
+  var ne=gsParseArr(bk.data&&bk.data.gunsanElders).length, when=bk.at?new Date(bk.at).toLocaleString('ko-KR'):'?';
+  if(!confirm('직전 백업(어르신 '+ne+'명, '+when+')으로 이 컴퓨터 자료를 되돌립니다.\n현재 화면 자료는 백업으로 다시 백업됩니다. 계속할까요?'))return;
+  gsApply(bk.data||{});
+  var ov=document.getElementById('gsLoginOv'); if(ov)ov.style.display='none';
+  alert('✅ 복구했습니다(어르신 '+ne+'명). 확인 후, 중앙에 올리려면 「↑ 이 컴퓨터 자료를 올리기」를 쓰세요.');
+}
+function gsReloadFromStorage(){try{reE();reV();}catch(e){}try{gsPreserveDur=localStorage.getItem('gunsanPreserveDur')==='1';var pc=document.getElementById('gs-preserve');if(pc)pc.checked=gsPreserveDur;}catch(e){}try{gsLoad();if(gsElders.length)gsRender();gsLoad2();gsRender2();gsOvLoad();gsDrvLoad();gsAssignLoad();gsRegLoad();gsLoadGuide();if(gsCourses)gsRenderGuide();}catch(e){}}
+function gsSummary(){try{var ne=(typeof gsElders!=='undefined'&&gsElders)?gsElders.length:0;var nv=(typeof gsVehicles!=='undefined'&&gsVehicles)?gsVehicles.length:0;var ns=(typeof gsStaff!=='undefined'&&gsStaff)?gsStaff.length:0;return '어르신 '+ne+'·차량 '+nv+'·직원 '+ns;}catch(e){return '저장';}}
+function gsParseArr(s){try{var a=JSON.parse(s||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}}
+function gsObjLen(s){try{return Object.keys(JSON.parse(s||'{}')).length;}catch(e){return 0;}}
+// 직전 저장본(prev)과 현재(cur)를 비교해 "무엇이 바뀌었나" 요약 — 수정로그용
+function gsDiffSummary(prev,cur){
+  if(!prev) return gsSummary();
+  var parts=[];
+  function names(s){return gsParseArr(s).map(function(e){return e&&e.name;}).filter(Boolean);}
+  var pe=names(prev.gunsanElders), ce=names(cur.gunsanElders);
+  var add=ce.filter(function(n){return pe.indexOf(n)<0;}), rem=pe.filter(function(n){return ce.indexOf(n)<0;});
+  if(add.length)parts.push('어르신+'+add.length+'('+add.slice(0,3).join(',')+(add.length>3?'…':'')+')');
+  if(rem.length)parts.push('어르신-'+rem.length+'('+rem.slice(0,3).join(',')+(rem.length>3?'…':'')+')');
+  var pv=gsParseArr(prev.gunsanVehicles).length, cv=gsParseArr(cur.gunsanVehicles).length; if(cv!==pv)parts.push('차량 '+pv+'→'+cv);
+  var ps=gsParseArr(prev.gunsanStaff).length, cs=gsParseArr(cur.gunsanStaff).length; if(cs!==ps)parts.push('직원 '+ps+'→'+cs);
+  var po=gsObjLen(prev.gunsanOverrides), co=gsObjLen(cur.gunsanOverrides); if(co!==po)parts.push('조정 '+co+'건');
+  if((prev.gunsanDrivers||'')!==(cur.gunsanDrivers||''))parts.push('운전자 변경');
+  if((prev.gunsanCourses||'')!==(cur.gunsanCourses||''))parts.push('가이드 재생성');
+  if((prev.gunsanFinal||'')!==(cur.gunsanFinal||'')&&cur.gunsanFinal)parts.push('최종확정');
+  if((prev.gunsanRegions||'')!==(cur.gunsanRegions||''))parts.push('운행지역 변경');
+  return parts.length?parts.join(', '):'세부 수정';
+}
+function gsLocalOnly(){gsBranch='';var ov=document.getElementById('gsLoginOv');if(ov)ov.style.display='none';var el=document.getElementById('gsBranchName');if(el)el.textContent='💻 로컬(이 컴퓨터에서만)';setSync('');}
+function scheduleCentralSave(){if(gsApplying||gsAdminView||!gsBranch||!inCentral(gsBranch))return;if(gsSaveTimer)clearTimeout(gsSaveTimer);gsSaveTimer=setTimeout(centralSaveNow,4000);}
+function centralSaveNow(){if(!gsBranch||!inCentral(gsBranch))return;var pw=getPw(gsBranch);if(!pw)return;var cur=gsGather();var summary=gsDiffSummary(gsLastSaved,cur);setSync('save');centralPost({action:'save',branch:gsBranch,pw:pw,data:JSON.stringify(cur),by:gsUser,summary:summary}).then(function(res){if(res&&res.ok)gsLastSaved=cur;setSync(res&&res.ok?'ok':'off');}).catch(function(){setSync('off');});}
+// 데이터 키 저장 시 자동 중앙저장(각 저장함수를 일일이 안 고쳐도 됨)
+(function(){var _set=localStorage.setItem.bind(localStorage);localStorage.setItem=function(k,v){_set(k,v);try{if(!gsApplying&&GS_SYNC_KEYS.indexOf(k)>=0)scheduleCentralSave();}catch(e){}};})();
+function gsShowLogin(){var ov=document.getElementById('gsLoginOv');if(!ov)return;ov.style.display='flex';gsRenderLoginBranches();centralGet('branches').then(function(res){if(res&&res.ok&&Array.isArray(res.branches)){centralBranches=res.branches;gsRenderLoginBranches();}}).catch(function(){});}
+function gsRenderLoginBranches(){var el=document.getElementById('gsLoginBranches');if(!el)return;el.innerHTML='';var list=centralBranches||[];if(!list.length){el.innerHTML='<span style="color:#888;font-size:13px">승인된 지점이 없습니다. 아래에서 새 지점을 신청하세요.</span>';return;}list.forEach(function(b){var btn=document.createElement('button');btn.className='btn';btn.style.cssText='padding:9px 14px;font-size:15px;margin:3px;border:1px solid #185FA5;color:#185FA5;border-radius:8px;background:#fff;cursor:pointer';btn.textContent=b;btn.onclick=function(){gsStartLogin(b);};el.appendChild(btn);});}
+function gsStartLogin(b){gsLoginBranch=b;document.getElementById('gsLoginPwArea').style.display='block';document.getElementById('gsLoginPwTitle').textContent='['+b+'] 비밀번호·이름 입력';document.getElementById('gsLoginPw').value='';document.getElementById('gsLoginName').value=gsUser||'';document.getElementById('gsLoginMsg').textContent='';document.getElementById('gsLoginPw').focus();}
+function gsSubmitLogin(){var pw=(document.getElementById('gsLoginPw').value||'').trim();var nm=(document.getElementById('gsLoginName').value||'').trim();var msg=document.getElementById('gsLoginMsg');var b=gsLoginBranch;if(!/^\d{4}$/.test(pw)){msg.style.color='#9A3412';msg.textContent='비밀번호 숫자 4자리';return;}if(!nm){msg.style.color='#9A3412';msg.textContent='사용자 이름을 입력하세요(수정 기록용)';return;}msg.style.color='#888';msg.textContent='확인 중…';centralPost({action:'load',branch:b,pw:pw}).then(function(res){if(res&&res.ok){var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){}var _lc=gsParseArr(gsGather().gunsanElders).length,_cc=data?gsParseArr(data.gunsanElders||'[]').length:0;if(_lc>0&&_cc<_lc&&!confirm('⚠️ 이 컴퓨터에는 어르신 '+_lc+'명이 있는데 ['+b+'] 중앙에는 '+_cc+'명뿐입니다.\n로그인하면 이 컴퓨터 자료가 중앙('+_cc+'명)으로 덮어써집니다 — 현재 자료가 사라집니다.\n\n취소를 누르고 「↑ 이 컴퓨터 자료를 이 지점에 올리기」를 쓰면 안전합니다.\n\n그래도 로그인(덮어쓰기)할까요?')){msg.style.color='#9A3412';msg.textContent='취소됨 — 「↑ 올리기」를 이용하세요';return;}setPw(b,pw);gsBranch=b;gsUser=nm;try{localStorage.setItem('gsBranch',b);localStorage.setItem('gsUser',nm);localStorage.setItem('gsLoggedIn','1');}catch(e){}if(gsSaveTimer)clearTimeout(gsSaveTimer);gsApply(data||{});document.getElementById('gsLoginOv').style.display='none';gsUpdateBranchBar();setSync('ok');}else if(res&&res.error==='비번틀림'){msg.style.color='#9A3412';msg.textContent='비밀번호가 틀립니다';}else if(res&&res.error==='승인대기중'){msg.style.color='#9A3412';msg.textContent='아직 승인 전입니다 (관리자 승인 대기)';}else if(res&&res.error==='없는지점'){msg.style.color='#9A3412';msg.textContent='등록되지 않은 지점';}else{msg.style.color='#9A3412';msg.textContent='오류: '+((res&&res.error)||'?');}}).catch(function(){msg.style.color='#9A3412';msg.textContent='연결 실패 — 인터넷 확인';});}
+// 이 컴퓨터의 현재 자료를 선택한 지점 중앙에 올리기(다운로드 없이 업로드=자료 이전·복구용)
+function gsPushLocal(){
+  var pw=(document.getElementById('gsLoginPw').value||'').trim(),nm=(document.getElementById('gsLoginName').value||'').trim(),msg=document.getElementById('gsLoginMsg'),b=gsLoginBranch;
+  if(!/^\d{4}$/.test(pw)){msg.style.color='#9A3412';msg.textContent='비밀번호 숫자 4자리';return;}
+  if(!nm){msg.style.color='#9A3412';msg.textContent='사용자 이름을 입력하세요';return;}
+  var sm=gsSummary();
+  if(!confirm('이 컴퓨터의 현재 자료('+sm+')를\n['+b+'] 지점 중앙에 올립니다.\n→ 그 지점의 기존 중앙 자료를 덮어씁니다. 계속할까요?'))return;
+  msg.style.color='#888';msg.textContent='올리는 중…';
+  centralPost({action:'save',branch:b,pw:pw,data:JSON.stringify(gsGather()),by:nm,summary:'이 컴퓨터 자료 올리기('+sm+')'}).then(function(res){
+    if(res&&res.ok){setPw(b,pw);gsBranch=b;gsUser=nm;try{localStorage.setItem('gsBranch',b);localStorage.setItem('gsUser',nm);localStorage.setItem('gsLoggedIn','1');}catch(e){}gsLastSaved=gsGather();document.getElementById('gsLoginOv').style.display='none';gsUpdateBranchBar();setSync('ok');alert('✅ 올렸습니다.\n이제 ['+b+'] 지점으로 로그인되었고, 수정하면 자동 저장됩니다.');}
+    else{msg.style.color='#9A3412';msg.textContent=({'비번틀림':'비밀번호가 틀립니다','없는지점':'등록되지 않은 지점','권한없음':'승인 전이거나 비번 오류'})[res&&res.error]||('오류: '+((res&&res.error)||'?'));}
+  }).catch(function(){msg.style.color='#9A3412';msg.textContent='연결 실패 — 인터넷 확인';});
+}
+function gsDoRequest(){var name=(document.getElementById('gsReqName').value||'').trim();var pw=(document.getElementById('gsReqPw').value||'').trim();var msg=document.getElementById('gsReqMsg');if(!name){msg.style.color='#9A3412';msg.textContent='지점명을 입력하세요';return;}if(!/^\d{4}$/.test(pw)){msg.style.color='#9A3412';msg.textContent='비밀번호 숫자 4자리';return;}msg.style.color='#888';msg.textContent='신청 중…';var hasLocal=gsGather().gunsanElders||gsGather().gunsanVehicles;centralPost({action:'request',name:name,pw:pw,by:name,data:hasLocal?JSON.stringify(gsGather()):''}).then(function(res){if(res&&res.ok){msg.style.color='#0F6E56';msg.textContent='✓ 신청됨'+(hasLocal?'(현재 자료 포함)':'')+' — 관리자 승인 후 로그인하세요';}else if(res&&res.error==='이미존재'){msg.style.color='#9A3412';msg.textContent='이미 있는 지점명입니다';}else{msg.style.color='#9A3412';msg.textContent='오류: '+((res&&res.error)||'?');}}).catch(function(){msg.style.color='#9A3412';msg.textContent='연결 실패 — 인터넷 확인';});}
+function gsLogout(){try{localStorage.removeItem('gsLoggedIn');}catch(e){}gsBranch='';gsShowLogin();}
+function gsUpdateBranchBar(){var el=document.getElementById('gsBranchName');if(el)el.textContent=gsBranch?('🏢 '+gsBranch+(gsUser?(' · '+gsUser):'')):'';}
+function gsTryAutoLogin(){var b='';try{b=localStorage.getItem('gsBranch')||'';gsUser=localStorage.getItem('gsUser')||'';}catch(e){}
+  if(localStorage.getItem('gsLoggedIn')==='1'&&b&&getPw(b)){
+    centralGet('branches').then(function(res){if(res&&res.ok&&Array.isArray(res.branches))centralBranches=res.branches;}).catch(function(){})
+      .then(function(){return centralPost({action:'load',branch:b,pw:getPw(b)});})
+      .then(function(res){if(res&&res.ok){gsBranch=b;var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){}if(gsSaveTimer)clearTimeout(gsSaveTimer);gsApply(data||{});var ov=document.getElementById('gsLoginOv');if(ov)ov.style.display='none';gsUpdateBranchBar();setSync('ok');}else{gsShowLogin();}})
+      .catch(function(){gsShowLogin();});   // 실패(삭제·비번변경·오프라인) → 로그인 화면
+  }else{gsShowLogin();}}
+// ── 관리자 ──
+function gsOpenAdmin(){var a=document.getElementById('gsAdminArea');if(a)a.style.display='block';var p=document.getElementById('gsAdminPanel');if(p)p.style.display='none';var m=document.getElementById('gsAdminMsg');if(m)m.textContent='';var pi=document.getElementById('gsAdminPw');if(pi){pi.value='';setTimeout(function(){pi.focus();},40);}}
+function gsAdminAuth(){var pw=(document.getElementById('gsAdminPw').value||'').trim(),msg=document.getElementById('gsAdminMsg');if(!pw){msg.style.color='#9A3412';msg.textContent='관리자 비번 입력';return;}msg.style.color='#888';msg.textContent='확인 중…';centralPost({action:'admin_list',master:pw}).then(function(res){if(res&&res.ok){gsAdminMaster=pw;msg.textContent='';document.getElementById('gsAdminPanel').style.display='block';gsRenderAdmin(res);}else{msg.style.color='#9A3412';msg.textContent='관리자 비밀번호가 틀립니다';}}).catch(function(){msg.style.color='#9A3412';msg.textContent='연결 실패 — 인터넷 확인';});}
+function gsAdminReload(){centralPost({action:'admin_list',master:gsAdminMaster}).then(function(res){if(res&&res.ok)gsRenderAdmin(res);});}
+function gsRenderAdmin(res){var pend=res.pending||[],appr=res.approved||[];gsAdminApproved=appr;var pe=document.getElementById('gsAdminPending'),ae=document.getElementById('gsAdminApproved');pe.innerHTML='';ae.innerHTML='';
+  if(!pend.length)pe.innerHTML='<span style="color:#888;font-size:12px">대기 중인 신청 없음</span>';
+  pend.forEach(function(name){var row=document.createElement('div');row.style.cssText='display:flex;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid #eee';var nm=document.createElement('span');nm.style.cssText='flex:1;font-weight:500';nm.textContent=name;row.appendChild(nm);var ok=document.createElement('button');ok.textContent='승인';ok.style.cssText='font-size:12px;padding:3px 10px;border:0;border-radius:6px;background:#0F6E56;color:#fff;cursor:pointer';ok.onclick=function(){centralPost({action:'admin_approve',master:gsAdminMaster,name:name}).then(gsAdminReload);};row.appendChild(ok);var no=document.createElement('button');no.textContent='거절';no.style.cssText='font-size:12px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer';no.onclick=function(){if(confirm('['+name+'] 신청을 거절(삭제)할까요?'))centralPost({action:'admin_reject',master:gsAdminMaster,name:name}).then(gsAdminReload);};row.appendChild(no);pe.appendChild(row);});
+  if(!appr.length)ae.innerHTML='<span style="color:#888;font-size:12px">승인된 지점 없음</span>';
+  appr.forEach(function(it){var name=(it&&typeof it==='object')?(it.name||''):it,by=(it&&it.by)||'',up=(it&&it.updated)||'';var row=document.createElement('div');row.style.cssText='display:flex;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid #eee';var col=document.createElement('div');col.style.cssText='flex:1';var n1=document.createElement('div');n1.style.cssText='font-weight:500';n1.textContent=name;col.appendChild(n1);if(by||up){var meta=document.createElement('div');meta.style.cssText='font-size:11px;color:#aaa';meta.textContent=(by?'보낸이 '+by:'')+(by&&up?' · ':'')+(up?'수정 '+up:'');col.appendChild(meta);}row.appendChild(col);var v=document.createElement('button');v.textContent='조회';v.style.cssText='font-size:12px;padding:3px 10px;border:1px solid #185FA5;border-radius:6px;background:#fff;color:#185FA5;cursor:pointer';v.onclick=function(){gsAdminViewBranch(name);};row.appendChild(v);var del=document.createElement('button');del.textContent='삭제';del.style.cssText='font-size:12px;padding:3px 10px;border:1px solid #9A3412;border-radius:6px;background:#fff;color:#9A3412;cursor:pointer';del.onclick=function(){if(confirm('['+name+'] 지점을 삭제할까요?\n\n⚠️ 이 지점 자료가 모두 사라지고 되돌릴 수 없습니다.'))centralPost({action:'admin_reject',master:gsAdminMaster,name:name}).then(gsAdminReload);};row.appendChild(del);ae.appendChild(row);});}
+function gsAdminViewBranch(name){centralPost({action:'admin_view',master:gsAdminMaster,branch:name}).then(function(res){if(!res||!res.ok){alert('조회 실패');return;}var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){}gsAdminView=true;gsAdminEdit=false;gsBranch=name;if(gsSaveTimer)clearTimeout(gsSaveTimer);gsApply(data||{});document.getElementById('gsLoginOv').style.display='none';gsRenderAdminBar();});}
+function gsRenderAdminBar(){var bar=document.getElementById('gsAdminBar');if(!bar)return;if(!gsAdminView){bar.style.display='none';return;}bar.style.display='flex';var chips=document.getElementById('gsAdminChips');chips.innerHTML='';gsAdminApproved.forEach(function(it){var n=(it&&typeof it==='object')?it.name:it;var b=document.createElement('button');b.textContent=n;b.style.cssText='font-size:12px;padding:3px 9px;border-radius:6px;cursor:pointer;border:1px solid '+(n===gsBranch?'#185FA5':'#ccc')+';background:'+(n===gsBranch?'#185FA5':'#fff')+';color:'+(n===gsBranch?'#fff':'#333');b.onclick=function(){gsAdminViewBranch(n);};chips.appendChild(b);});var mode=document.getElementById('gsAdminMode');mode.textContent=gsAdminEdit?('✏️ 수정 중 — '+gsBranch):('👁 조회 중 — '+gsBranch+' (읽기전용)');mode.style.color=gsAdminEdit?'#9A3412':'#185FA5';document.getElementById('gsAdminEditBtn').textContent=gsAdminEdit?'조회로':'이 지점 수정';document.getElementById('gsAdminSaveBtn').style.display=gsAdminEdit?'':'none';var sb=document.getElementById('gsSyncBadge');if(sb){sb.textContent=gsAdminEdit?'✏️ 관리자 수정 중':'👁 관리자 조회';sb.style.color='#9A3412';}var bn=document.getElementById('gsBranchName');if(bn)bn.textContent='🔧 관리자';}
+function gsAdminEditToggle(){if(!gsAdminView)return;if(!gsAdminEdit){if(!confirm('⚠️ 수정 모드로 들어갑니다.\n지점이 동시에 수정 중이면 나중에 저장하는 쪽이 덮어씁니다.\n계속할까요?'))return;gsAdminEdit=true;}else gsAdminEdit=false;gsRenderAdminBar();}
+function gsAdminSave(){if(!gsAdminView||!gsAdminEdit||!gsBranch)return;if(!confirm('"'+gsBranch+'" 지점에 지금 화면 내용을 저장합니다.\n이 지점이 동시에 수정 중이었다면 덮어쓸 수 있어요. 계속할까요?'))return;centralPost({action:'admin_save',master:gsAdminMaster,branch:gsBranch,data:JSON.stringify(gsGather()),summary:'관리자 수정'}).then(function(res){if(res&&res.ok){alert('✅ 저장했습니다. 지점이 새로고침하면 반영됩니다.');gsAdminReload();}else alert('저장 실패: '+((res&&res.error)||'?'));}).catch(function(){alert('연결 실패 — 인터넷 확인');});}
+function gsAdminLog(){centralPost({action:'admin_log',master:gsAdminMaster,branch:gsAdminView?gsBranch:''}).then(function(res){if(!res||!res.ok){alert('조회 실패');return;}var logs=res.logs||[];if(!logs.length){alert('수정 기록이 없습니다.');return;}var txt=logs.slice(0,40).map(function(l){return l.time+'  ['+l.branch+']  '+l.by+'  '+l.summary;}).join('\n');alert('📝 수정 기록 (최근)\n\n'+txt);});}
+function gsAdminExit(){gsAdminView=false;gsAdminEdit=false;gsAdminMaster='';var bar=document.getElementById('gsAdminBar');if(bar)bar.style.display='none';gsBranch='';gsShowLogin();}
 
 function showToast(msg){
   let t=document.getElementById('toast');
@@ -4458,7 +4626,7 @@ function gsRenderVeh(){
     <input value="${esc(v.no||'')}" onchange="gsEditVeh(${v.id},'no',this.value)" placeholder="차량번호" style="${GS_IST};width:96px">
     <select onchange="gsEditVeh(${v.id},'type',this.value)" style="${GS_IST}">${['버스','봉고','승합','승용'].map(t=>`<option ${v.type===t?'selected':''}>${t}</option>`).join('')}</select>
     <label style="font-size:11px;color:var(--text2)">정원 <input value="${v.cap||''}" onchange="gsEditVeh(${v.id},'cap',this.value)" style="${GS_IST};width:34px"></label>
-    <label style="font-size:11px;color:var(--text2)" title="버스 1차 · 봉고/승합/승용 최대 3차">차수 <input value="${v.rounds||(v.type==='버스'?1:3)}" onchange="gsEditVeh(${v.id},'rounds',this.value)" style="${GS_IST};width:26px"></label>
+    <label style="font-size:11px;color:var(--text2)" title="버스 1차 · 봉고/승합/승용 최대 3차">차수 <input value="${v.rounds||(v.type==='버스'?1:3)}" onchange="gsEditVeh(${v.id},'rounds',this.value)" style="${GS_IST};width:26px"></label><button onclick="gsViewRoundAnchors(${v.id})" title="차수별 등원 첫시간·하원 출발시간 보기(수정은 최적생성 ④에서)" style="font-size:10px;padding:1px 7px;border:0.5px solid var(--border);border-radius:4px;background:transparent;color:#185FA5;cursor:pointer"><i class="ti ti-clock"></i> 보기</button>
     <label style="font-size:11px;color:var(--text2)" title="1회당 채울 최적 인원(정원 내). 버스는 60분 제약 없이 이 인원까지 채움">1회최적 <input value="${v.target||v.cap||''}" onchange="gsEditVeh(${v.id},'target',this.value)" style="${GS_IST};width:30px">명</label>
     <label style="font-size:11px;color:var(--text2)">운영 <select onchange="gsEditVeh(${v.id},'shift',this.value)" style="${GS_IST}"><option value="both"${v.shift==='both'?' selected':''}>아침+저녁</option><option value="am"${v.shift==='am'?' selected':''}>아침만</option><option value="pm"${v.shift==='pm'?' selected':''}>저녁만</option></select></label>
     <label style="font-size:11px;color:var(--text2)" title="체크=센터에서 출발(센터→첫 어르신 구간 추가). 미체크=직원집(첫 어르신 댁부터)">센터출발 <input type="checkbox" ${v.start==='센터'?'checked':''} onchange="gsEditVeh(${v.id},'fromCenter',this.checked)"></label>
@@ -4819,6 +4987,13 @@ function gsTimeVeh(veh,rounds,dir){
       D+=rts[k];                                           // 다음 차는 이 차 복귀 후 출발
     }
   }
+  // 차수별 수동 시각(최적생성에서 입력) 덮어쓰기 — 입력된 차수만, 그 회차를 그 시각부터 순방향 재계산
+  rounds.forEach((r,k)=>{
+    const an = dir==='am' ? (veh.roundAm&&veh.roundAm[k]) : (veh.roundPm&&veh.roundPm[k]);
+    if(!an) return;
+    if(dir==='am'){ let t=toMin(an); r.forEach((en,i)=>{ if(i>0) t+=legTravelMin(r[i-1].e.addr,r[i].e.addr); en.t=gsMin2(t); t+=(en.e.dwellExtra||1); }); }   // 등원 첫집 도착=an
+    else { let t=toMin(an),prev=gsCenter; r.forEach(en=>{ t+=legTravelMin(prev,en.e.addr); en.t=gsMin2(t); t+=(en.e.dwellExtra||1); prev=en.e.addr; }); }                // 하원 센터출발=an
+  });
 }
 async function gsBuild(){
   if(!gsElders.length){ alert('① 어르신 명단을 먼저 올리세요.'); return; }
@@ -4827,13 +5002,27 @@ async function gsBuild(){
   await gsGeocodeAll();
   gsBuildAssign();   // 전 요일 같은 차 — 어르신 단위 배정(고정·보류 반영)
   gsCourses={};
-  GS_DAYS.forEach(day=>{ gsCourses[day]={ am:gsPlan(day,'am'), pm:gsPlan(day,'pm') }; gsSugaAdjust(day); });
+  GS_DAYS.forEach(day=>{ gsCourses[day]={ am:gsPlan(day,'am'), pm:gsPlan(day,'pm') }; gsSugaAdjust(day); gsPreserveDurAdjust(day); });
   if(document.getElementById('acc-guide').style.display==='none') gsAcc('guide');
   gsRenderGuide();
   showToast('최적 가이드 생성 완료 ✓');
 }
 // 재배치만(좌표·전역배정 그대로) — 빼기/더하기 후 그 결과만 다시 그림
-function gsReplan(){ if(!gsCourses){ return; } gsCourses={}; GS_DAYS.forEach(day=>{ gsCourses[day]={ am:gsPlan(day,'am'), pm:gsPlan(day,'pm') }; }); gsRenderGuide(); }
+function gsReplan(){ if(!gsCourses){ return; } gsCourses={}; GS_DAYS.forEach(day=>{ gsCourses[day]={ am:gsPlan(day,'am'), pm:gsPlan(day,'pm') }; gsSugaAdjust(day); gsPreserveDurAdjust(day); }); gsRenderGuide(); }
+// 차수별 등원 첫시간/하원 출발시간 — 최적생성에서만 입력. roundIdx=0부터, dir=am/pm
+function gsSetRoundAnchor(vehId,roundIdx,dir,val){
+  const v=gsVehicles.find(x=>String(x.id)===String(vehId)); if(!v) return;
+  const key=dir==='am'?'roundAm':'roundPm'; v[key]=v[key]||{};
+  const t=normTime(val); if(t) v[key][roundIdx]=t; else delete v[key][roundIdx];
+  gsSave2(); gsReplan();   // 그 시각 반영해 재계산·표시
+}
+// ② 차량설정의 「보기」 — 최적생성에서 저장한 차수별 시각 표시(읽기전용)
+function gsViewRoundAnchors(vehId){
+  const v=gsVehicles.find(x=>String(x.id)===String(vehId)); if(!v) return;
+  const maxR=v.type==='버스'?1:Math.max(1,Math.min(3,v.rounds||3)), am=v.roundAm||{}, pm=v.roundPm||{};
+  let lines=[]; for(let k=0;k<maxR;k++){ lines.push((k+1)+'차 — 등원 첫집 '+(am[k]||'(자동)')+' / 하원 출발 '+(pm[k]||'(자동)')); }
+  alert((v.no||v.type)+' 차수별 시각\n(최적생성 ④ 화면에서만 수정 가능)\n\n'+lines.join('\n'));
+}
 function gsGuideSet(day,dir){ gsGuideDay=day; gsGuideDir=dir; gsRenderGuide(); }
 function gsDayTimes(day){ const map={}; ['am','pm'].forEach(dir=>{ ((gsCourses[day]||{})[dir]||{plans:[]}).plans.forEach(p=>p.entries.forEach(en=>{ (map[en.e.id]=map[en.e.id]||{})[dir]=en.t; })); }); return map; }
 // 수가 자동보정: 이용시간(하원-등원)이 구간 경계 살짝 아래(20분 이내)면 하원을 늦춰 구간 충족 — 우선순위 1번(수가)
@@ -4851,7 +5040,46 @@ function gsSugaAdjust(day){
     else en.sugaAdj=0;
   }));
 }
-// 차량의 하루 실제 운행 시계(분). 센터출발이면 근무 시작 = 첫 픽업 − 센터→첫집, 운행 끝은 항상 마지막 하차 + 마지막집→센터(센터 복귀)
+// B2: 기존 이용시간(수가) 보존 — 업로드한 기존 코스의 이용시간(하원−등원)을 새 코스가 유지하도록 하원을 늦춤
+function gsPreserveDurAdjust(day){
+  if(!gsPreserveDur || !gsExisting) return;
+  const c=gsCourses[day]; if(!c) return;
+  const amT={}; (c.am||{plans:[]}).plans.forEach(p=>p.entries.forEach(en=>amT[en.e.id]=toMin(en.t)));
+  (c.pm||{plans:[]}).plans.forEach(p=>p.entries.forEach(en=>{
+    const a=amT[en.e.id]; if(a==null) return;
+    if(gsOv(en.e.name).fixPmTime) return;                       // 고정 하원시각은 손대지 않음
+    const ex=gsExisting[en.e.name]; if(!ex) return;
+    const oa=toMin(ex.am), op=toMin(ex.pm); if(oa==null||op==null||op<=oa) return;
+    const oldDur=op-oa, curUse=toMin(en.t)-a;
+    if(curUse < oldDur){ const add=oldDur-curUse; en.t=gsMin2(toMin(en.t)+add); en.sugaAdj=(en.sugaAdj||0)+add; en.durKeep=true; }  // 기존 이용시간만큼 보장
+  }));
+}
+function gsSetPreserve(v){ gsPreserveDur=!!v; try{localStorage.setItem('gunsanPreserveDur',v?'1':'');}catch(e){} if(typeof gsCourses!=='undefined'&&gsCourses) gsBuild(); }
+// B3: 기사 자택 ↔ 차량 어르신 군집 최근접 자동배정(정 운전자 drvJeong 추천). 좌표 있으면 실거리, 없으면 동 일치.
+function gsAutoDriversByHome(){
+  if(!gsVehicles.length){ alert('② 차량을 먼저 입력하세요.'); return; }
+  if(!gsAssign || !Object.keys(gsAssign).length){ alert('먼저 ④에서 「최적 가이드 생성」을 하면 어르신이 차량에 배정됩니다.\n그 뒤 자택 기준 배정을 누르세요.'); return; }
+  const drivers=gsStaff.filter(s=>s.canDrive && s.addr);
+  if(!drivers.length){ alert('자택 주소가 있는 운전 가능 직원이 없습니다.\n③ 직원에서 주소·운전 가능을 입력하세요.'); return; }
+  const mineOf=v=>gsElders.filter(e=>String(gsAssign[e.name])===String(v.id));
+  const centroid=v=>{ const cs=mineOf(v).map(e=>getCoords(e.addr)).filter(Boolean); if(!cs.length)return null; return {lat:cs.reduce((s,c)=>s+c.lat,0)/cs.length,lng:cs.reduce((s,c)=>s+c.lng,0)/cs.length}; };
+  const order=gsVehicles.filter(v=>mineOf(v).length).sort((a,b)=>mineOf(b).length-mineOf(a).length);
+  if(!order.length){ alert('어르신이 배정된 차량이 없습니다.'); return; }
+  const used={}, res=[];
+  order.forEach(v=>{
+    const cen=centroid(v), pool=drivers.filter(d=>!used[d.id]); if(!pool.length)return;
+    let best=null,bs=Infinity,rs='';
+    pool.forEach(d=>{ const dc=getCoords(d.addr); let sc,r;
+      if(dc&&cen){ sc=haversineKm(dc,cen); r='자택 '+sc.toFixed(1)+'km'; }
+      else { const dd=gsEDong({addr:d.addr}); const hit=mineOf(v).some(e=>gsEDong(e)===dd && dd); sc=hit?50:100; r=dd?('동 '+dd+(hit?' 일치':'')):'주소 미상'; }
+      if(sc<bs){ bs=sc; best=d; rs=r; }
+    });
+    if(best){ used[best.id]=1; v.drvJeong=best.name; res.push((v.no||v.type)+' → '+best.name+' ('+rs+')'); }
+  });
+  gsSave2(); gsRenderVeh(); if(typeof gsCourses!=='undefined'&&gsCourses) gsRenderGuide();
+  alert(res.length?('🚗 기사 자택 기준 자동배정 (정 운전자):\n\n'+res.join('\n')+'\n\n※ 차량 칸/④ 가이드에서 수정할 수 있습니다.'):'배정 결과가 없습니다.');
+}
+// 차량의 하루 운행 시계(분). 근무 시작 = 첫 어르신 댁 도착(첫 픽업), 끝 = 마지막 어르신 댁 도착(마지막 하차). 센터 왕복 이동은 근무에서 제외.
 function gsVehDayWork(veh,day){
   const c=gsCourses&&gsCourses[day]; if(!c) return null; const vid=String(veh.id);
   const am=[],pm=[];
@@ -4859,11 +5087,11 @@ function gsVehDayWork(veh,day){
   (c.pm||{plans:[]}).plans.forEach(p=>{ if(String(p.veh.id)===vid) p.entries.forEach(en=>pm.push({t:toMin(en.t),addr:en.e.addr})); });
   am.sort((a,b)=>a.t-b.t); pm.sort((a,b)=>a.t-b.t);
   const r={amStart:null,amEnd:null,pmStart:null,pmEnd:null,hasAm:am.length>0,hasPm:pm.length>0};
-  if(am.length){ r.amStart=(veh.start==='센터')?am[0].t-legTravelMin(gsCenter,am[0].addr):am[0].t; r.amEnd=am[am.length-1].t+legTravelMin(am[am.length-1].addr,gsCenter); }
-  if(pm.length){ r.pmStart=pm[0].t-legTravelMin(gsCenter,pm[0].addr); r.pmEnd=pm[pm.length-1].t+legTravelMin(pm[pm.length-1].addr,gsCenter); }   // 하원은 항상 센터에서 출발
+  if(am.length){ r.amStart=am[0].t; r.amEnd=am[am.length-1].t; }     // 첫 픽업 ~ 마지막 하차
+  if(pm.length){ r.pmStart=pm[0].t; r.pmEnd=pm[pm.length-1].t; }
   return r;
 }
-// 운행 span(센터 출발·복귀 포함) + 정 운전자 근무시간(정규9h/단시간) 초과 점검
+// 운행 span(첫 픽업~마지막 하차) + 정 운전자 근무시간(정규9h/단시간) 초과 점검
 function gsWorkCheck(day){
   const out=[], c=gsCourses[day]; if(!c) return out;
   const vehIds=new Set(); ['am','pm'].forEach(d=>(c[d]||{plans:[]}).plans.forEach(p=>vehIds.add(String(p.veh.id))));
@@ -4873,15 +5101,15 @@ function gsWorkCheck(day){
     const lbl=veh.type+' '+(veh.no||''), drv=veh.drvJeong, s=drv&&gsStaff.find(x=>x.name===drv);
     const dayStart=(w.amStart!=null?w.amStart:w.pmStart), dayEnd=(w.pmEnd!=null?w.pmEnd:w.amEnd);
     if(dayStart!=null && dayEnd!=null){ const span=dayEnd-dayStart;
-      if(span>9*60) out.push(`<b>${esc(lbl)}</b> — 하루 운행 ${gsHrs(span)}(${gsMin2(dayStart)}~${gsMin2(dayEnd)}, 센터 출발·복귀 포함) · <b>9시간 초과</b> → 등원/하원 단시간 분할 필요`);
+      if(span>9*60) out.push(`<b>${esc(lbl)}</b> — 하루 운행 ${gsHrs(span)}(첫 픽업 ${gsMin2(dayStart)}~마지막 하차 ${gsMin2(dayEnd)}) · <b>9시간 초과</b> → 등원/하원 단시간 분할 필요`);
     }
     if(!s) return;
     if(s.partTime){
       if(w.hasAm && s.amStart && (w.amStart<toMin(s.amStart)||w.amEnd>toMin(s.amEnd))) out.push(`<b>${esc(lbl)}</b> 등원 ${gsMin2(w.amStart)}~${gsMin2(w.amEnd)} — 단시간 ${drv} 아침(${s.amStart}~${s.amEnd}) 밖`);
       if(w.hasPm && s.pmStart && (w.pmStart<toMin(s.pmStart)||w.pmEnd>toMin(s.pmEnd))) out.push(`<b>${esc(lbl)}</b> 하원 ${gsMin2(w.pmStart)}~${gsMin2(w.pmEnd)} — 단시간 ${drv} 저녁(${s.pmStart}~${s.pmEnd}) 밖`);
     } else if(s.workStart && s.workEnd){
-      if(dayStart!=null && dayStart<toMin(s.workStart)) out.push(`<b>${esc(lbl)}</b> — 운행 시작 ${gsMin2(dayStart)}${veh.start==='센터'?'(센터 출발)':''}이 ${drv} 출근 ${s.workStart}보다 이름`);
-      if(dayEnd!=null && dayEnd>toMin(s.workEnd)) out.push(`<b>${esc(lbl)}</b> — 운행 종료 ${gsMin2(dayEnd)}(센터 복귀)이 ${drv} 퇴근 ${s.workEnd}보다 늦음`);
+      if(dayStart!=null && dayStart<toMin(s.workStart)) out.push(`<b>${esc(lbl)}</b> — 운행 시작(첫집 도착) ${gsMin2(dayStart)}이 ${drv} 출근 ${s.workStart}보다 이름`);
+      if(dayEnd!=null && dayEnd>toMin(s.workEnd)) out.push(`<b>${esc(lbl)}</b> — 운행 종료(마지막 하차) ${gsMin2(dayEnd)}이 ${drv} 퇴근 ${s.workEnd}보다 늦음`);
     }
   });
   return out;
@@ -4969,6 +5197,60 @@ function gsRenderGuide(){
     </div>`).join('')}
   </div>`;
   body.innerHTML=html;
+  gsRenderCompare();
+}
+// ── 기존 코스 비교(B1): 기존 송영표 업로드 → 새 코스와 동선·시간 절감 ──
+let gsExisting=null;   // {이름:{veh,seq,am,pm}}
+let gsPreserveDur=false;   // B2: 기존 이용시간(수가) 보존
+function gsExTemplate(){
+  var aoa=[['이름','차량','순서','등원','하원'],['홍길동','승합1',1,'08:30','15:40'],['김순자','승합1',2,'08:45','15:55'],['박영수','봉고1',1,'08:20','16:10']];
+  try{var ws=XLSX.utils.aoa_to_sheet(aoa);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'기존코스');XLSX.writeFile(wb,'기존코스_양식.xlsx');showToast('기존코스 양식 다운로드');}catch(e){alert('양식 생성 실패: '+e);}
+}
+function gsExFile(ev){var f=ev.target.files[0];ev.target.value='';if(f)gsSheetToRows(f,gsExSheet);}
+function gsExSheet(aoa){
+  var hr=-1,col={};
+  for(var i=0;i<Math.min(aoa.length,15);i++){var row=(aoa[i]||[]).map(function(c){return String(c||'').trim();});var find=function(re){return row.findIndex(function(c){return re.test(c);});};var ni=find(/^(이름|성명|어르신|수급자명?)$/);if(ni>=0){hr=i;col={name:ni,veh:find(/차량|^차$/),seq:find(/순서|순번/),am:find(/등원/),pm:find(/하원/)};break;}}
+  if(hr<0){alert('이름 칸을 찾지 못했습니다. 「양식」을 받아 채워서 올려주세요.');return;}
+  gsExisting={};var n=0;
+  for(var r=hr+1;r<aoa.length;r++){var row=aoa[r]||[];var nm=String(row[col.name]||'').trim();if(!nm)continue;gsExisting[nm]={veh:col.veh>=0?String(row[col.veh]||'').trim():'',seq:col.seq>=0?(parseInt(row[col.seq],10)||0):0,am:col.am>=0?(normTime(String(row[col.am]||'').trim())||''):'',pm:col.pm>=0?(normTime(String(row[col.pm]||'').trim())||''):''};n++;}
+  showToast(n+'명 기존코스 읽음 — 비교 표시'); gsRenderCompare();
+}
+function gsRouteMin(addrs){addrs=addrs.filter(Boolean);if(!addrs.length)return 0;var t=0,prev=gsCenter;addrs.forEach(function(a){t+=legTravelMin(prev,a);prev=a;});t+=legTravelMin(prev,gsCenter);return t;}
+function gsRouteKm(addrs){addrs=addrs.filter(Boolean);if(!addrs.length||typeof getCoords!=='function')return null;var cc=getCoords(gsCenter);var pts=[cc].concat(addrs.map(function(a){return getCoords(a);})).concat([cc]);for(var i=0;i<pts.length;i++)if(!pts[i])return null;var km=0;for(var j=1;j<pts.length;j++)km+=haversineKm(pts[j-1],pts[j]);return km;}
+function gsRenderCompare(){
+  var el=document.getElementById('gs-compare-panel');if(!el)return;
+  if(!gsExisting){el.innerHTML='';return;}
+  if(typeof gsCourses==='undefined'||!gsCourses){el.innerHTML='<span style="color:#9A3412">먼저 「최적 가이드 생성」을 누르면 비교가 나옵니다.</span>';return;}
+  var day=gsGuideDay,c=gsCourses[day]||{};
+  var addrOf={};gsElders.forEach(function(e){addrOf[e.name]=e.addr;});
+  var unmatched=Object.keys(gsExisting).filter(function(n){return addrOf[n]==null;});   // 기존표엔 있으나 명단에 없음
+  // 새 코스(이 요일): 차량별 동선분 + km + 마지막 하차
+  var newVeh={},newDrive=0,newLast=0,newKm=0,newKmOk=true;
+  ['am','pm'].forEach(function(dir){(c[dir]||{plans:[]}).plans.forEach(function(p){var no=p.veh.no||p.veh.type;newVeh[no]=(newVeh[no]||0)+Math.round(p.rt||0);newDrive+=Math.round(p.rt||0);var km=gsRouteKm(p.entries.map(function(en){return en.e.addr;}));if(km==null)newKmOk=false;else newKm+=km;if(dir==='pm')p.entries.forEach(function(en){var m=toMin(en.t);if(m>newLast)newLast=m;});});});
+  // 기존 코스: 업로드 차량별 묶음, 시각순 동선 + km
+  var groups={},matched=0;Object.keys(gsExisting).forEach(function(nm){if(addrOf[nm]==null)return;matched++;var v=gsExisting[nm].veh||'(미지정)';(groups[v]=groups[v]||[]).push(nm);});
+  if(!matched){el.innerHTML='<span style="color:#9A3412">기존표의 이름이 어르신 명단과 안 맞습니다(이름 표기 확인).</span>'+(unmatched.length?'<div style="font-size:11px;color:#9A3412;margin-top:4px">미매칭: '+unmatched.slice(0,10).join(', ')+'</div>':'');return;}
+  var oldVeh={},oldDrive=0,oldLast=0,oldKm=0,oldKmOk=true;
+  Object.keys(groups).forEach(function(v){var ns=groups[v];
+    var am=ns.slice().sort(function(a,b){return (toMin(gsExisting[a].am)||9999)-(toMin(gsExisting[b].am)||9999);});
+    var pm=ns.slice().sort(function(a,b){return (toMin(gsExisting[a].pm)||0)-(toMin(gsExisting[b].pm)||0);});
+    var d=gsRouteMin(am.map(function(n){return addrOf[n];}))+gsRouteMin(pm.map(function(n){return addrOf[n];}));oldVeh[v]=Math.round(d);oldDrive+=d;
+    var ka=gsRouteKm(am.map(function(n){return addrOf[n];})),kp=gsRouteKm(pm.map(function(n){return addrOf[n];}));if(ka==null||kp==null)oldKmOk=false;else oldKm+=ka+kp;
+    pm.forEach(function(n){var m=toMin(gsExisting[n].pm);if(m>oldLast)oldLast=m;});
+  });
+  oldDrive=Math.round(oldDrive);
+  var save=oldDrive-newDrive,pct=oldDrive>0?Math.round(save/oldDrive*100):0,col=save>=0?'#0F6E56':'#9A3412';
+  var kmLine=(oldKmOk&&newKmOk)?('<span style="color:var(--text2)">이동거리:</span> 기존 '+oldKm.toFixed(1)+'km → 새 '+newKm.toFixed(1)+'km ('+(oldKm-newKm>=0?'-':'+')+Math.abs(oldKm-newKm).toFixed(1)+'km)<br>'):'';
+  var vehRows='기존 '+Object.keys(oldVeh).map(function(v){return esc(v)+' '+oldVeh[v]+'분';}).join('·')+' ／ 새 '+Object.keys(newVeh).map(function(v){return esc(v)+' '+newVeh[v]+'분';}).join('·');
+  el.innerHTML='<div style="font-size:11.5px;line-height:1.7">'
+    +'<b>'+day+'요일</b> · 비교 대상 '+matched+'명<br>'
+    +'<span style="color:var(--text2)">기존 코스:</span> 운행 <b>'+oldDrive+'분</b>'+(oldLast?' · 마지막 하차 '+gsMin2(oldLast):'')+'<br>'
+    +'<span style="color:var(--text2)">새 코스:</span> 운행 <b>'+newDrive+'분</b>'+(newLast?' · 마지막 하차 '+gsMin2(newLast):'')+'<br>'
+    +kmLine
+    +'<b style="color:'+col+';font-size:13px">→ 동선 '+(save>=0?(save+'분 절감 ('+pct+'%)'):((-save)+'분 증가'))+'</b><br>'
+    +'<span style="color:var(--text3);font-size:10px">차량별: '+vehRows+'</span>'
+    +(unmatched.length?'<div style="font-size:11px;color:#9A3412;margin-top:4px">⚠ 기존표에 있으나 명단에 없음('+unmatched.length+'): '+unmatched.slice(0,8).join(', ')+(unmatched.length>8?'…':'')+' — 이름 표기를 맞춰주세요</div>':'')
+    +'<div style="color:var(--text3);font-size:10px;margin-top:3px">※ 카카오 실거리(엣지)에서 더 정확. 요일 버튼으로 요일별 비교.</div></div>';
 }
 // 한 차수(round) = 차수 라벨 + 표
 function gsRoundSection(p,dt){
@@ -4978,15 +5260,22 @@ function gsRoundSection(p,dt){
     const pkCell= pk&&pk!=='normal'?`<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:${pk==='escort'?'#fff4e6':'#e6f1fb'};color:${pk==='escort'?'#9A3412':'#185FA5'}">${pkv}${e.dwellExtra?' +'+e.dwellExtra:''}</span>`:'<span style="font-size:11px;color:var(--text3)">일반</span>';
     const lock= gsOvHas(e.name)?' <i class="ti ti-lock" style="color:#9A3412;font-size:11px" title="조정됨"></i>':'';
     const editing = gsOvEditing===e.name;
-    const row = `<tr style="border-top:0.5px solid var(--border)"><td style="padding:4px 6px">${i+1}</td><td style="padding:4px 6px;font-weight:500">${esc(e.name)}${lock}</td><td style="padding:4px 6px;color:var(--text2);font-size:11px">${gsEDong(e)||'-'}</td><td style="padding:4px 6px">${en.t}</td><td style="padding:4px 6px">${pkCell}</td><td style="padding:4px 6px;font-size:11px;color:var(--text2);white-space:nowrap">${useTxt}${(gsGuideDir==='pm'&&en.sugaAdj>0)?` <span style="color:#0F6E56;font-size:10px">↑수가+${en.sugaAdj}</span>`:''} <button onclick="gsHoldElder('${esc(e.name)}')" title="이 차에서 빼서 대기 리스트로(보류 — 어느 차로 갈지 정하기 전)" style="font-size:10px;padding:1px 6px;border:0.5px solid #d99;border-radius:4px;background:transparent;color:#9A3412;cursor:pointer">빼기</button> <button onclick="gsOvToggle('${esc(e.name)}')" style="font-size:10px;padding:1px 6px;border:0.5px solid var(--border);border-radius:4px;background:${editing?'#0F6E56':'transparent'};color:${editing?'#fff':'var(--text2)'};cursor:pointer">조정</button></td></tr>`;
+    const setBtn = `<button onclick="gsOvToggle('${esc(e.name)}')" title="이 어르신 조정(차량 고정·시각·목표수가)" style="font-size:10px;padding:1px 7px;border:0.5px solid var(--border);border-radius:4px;background:${editing?'#0F6E56':'transparent'};color:${editing?'#fff':'var(--text2)'};cursor:pointer"><i class="ti ti-adjustments"></i> 설정</button>`;
+    const holdBtn = `<button onclick="gsHoldElder('${esc(e.name)}')" title="이 차에서 빼서 대기 리스트로 보류(어느 차로 갈지 정하기 전)" style="font-size:10px;padding:1px 7px;border:0.5px solid #d99;border-radius:4px;background:transparent;color:#9A3412;cursor:pointer">보류</button>`;
+    const useCell = `${useTxt}${(gsGuideDir==='pm'&&en.sugaAdj>0)?` <span style="color:#0F6E56;font-size:10px">↑수가+${en.sugaAdj}</span>`:''}`;
+    const memoTxt = esc(e.memo||e.special||'');
+    const row = `<tr style="border-top:0.5px solid var(--border)"><td style="padding:4px 6px">${i+1}</td><td style="padding:4px 6px;font-weight:500;white-space:nowrap">${esc(e.name)}${lock}</td><td style="padding:4px 6px">${setBtn}</td><td style="padding:4px 6px;color:var(--text2);font-size:11px">${gsEDong(e)||'-'}</td><td style="padding:4px 6px;white-space:nowrap">${en.t}</td><td style="padding:4px 6px">${pkCell}</td><td style="padding:4px 6px;color:var(--text2);font-size:11px">${esc(e.addr||'')}</td><td style="padding:4px 6px;color:var(--text2);font-size:11px">${memoTxt}</td><td style="padding:4px 6px;font-size:11px;color:var(--text2);white-space:nowrap">${useCell}</td><td style="padding:4px 6px">${holdBtn}</td></tr>`;
     return row + (editing? gsOvEditorRow(e):'');
   }).join('');
   const col= p.veh.type==='버스'?'#9A3412': p.veh.type==='승용'?'#185FA5':'#0F6E56';
   const rtTxt = p.rt? `${Math.round(p.rt)}분${p.rt>GS_ROUND_MAX?' ⚠초과':''}`:'';
+  const anchorVal = ((gsGuideDir==='am'?(p.veh.roundAm||{}):(p.veh.roundPm||{}))[p.round-1])||'';
+  const anchorLbl = gsGuideDir==='am'?'등원 첫집':'하원 출발';
+  const anchorBox = `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--text3)" title="이 차수의 ${gsGuideDir==='am'?'등원 첫집 도착':'하원 센터 출발'} 시각을 직접 지정(비우면 자동). 차수별로 따로 지정합니다.">${anchorLbl}<input value="${anchorVal}" onchange="gsSetRoundAnchor(${p.veh.id},${p.round-1},'${gsGuideDir}',this.value)" placeholder="--:--" style="font-size:11px;padding:1px 4px;border:0.5px solid var(--border);border-radius:4px;width:48px">${anchorVal?' ✏':''}</span>`;
   return `<div style="margin-top:8px">
-    <div style="font-size:12px;margin-bottom:3px;display:flex;align-items:center;gap:6px"><span title="${p.totalRounds}회 왕복 중 ${p.round}번째" style="font-weight:700;padding:1px 9px;border-radius:10px;background:${col}1a;color:${col}">${p.round}/${p.totalRounds}차</span><span style="font-weight:400;color:var(--text3);font-size:11px">${p.entries.length}명 · 회차 ${rtTxt}</span></div>
+    <div style="font-size:12px;margin-bottom:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span title="${p.totalRounds}회 왕복 중 ${p.round}번째" style="font-weight:700;padding:1px 9px;border-radius:10px;background:${col}1a;color:${col}">${p.round}/${p.totalRounds}차</span><span style="font-weight:400;color:var(--text3);font-size:11px">${p.entries.length}명 · 회차 ${rtTxt}</span>${anchorBox}</div>
     <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="color:var(--text3);font-size:11px;text-align:left"><th style="padding:3px 6px;font-weight:400;width:24px">순</th><th style="padding:3px 6px;font-weight:400">어르신</th><th style="padding:3px 6px;font-weight:400;width:54px">동</th><th style="padding:3px 6px;font-weight:400;width:48px">${gsGuideDir==='am'?'등원':'하원'}</th><th style="padding:3px 6px;font-weight:400;width:84px">픽업</th><th style="padding:3px 6px;font-weight:400" title="이용시간(하원−등원)과 그에 따른 수가 구간(3·6·8·10·12시간)">이용·수가</th></tr></thead>
+      <thead><tr style="color:var(--text3);font-size:11px;text-align:left"><th style="padding:3px 6px;font-weight:400;width:24px">순</th><th style="padding:3px 6px;font-weight:400">어르신</th><th style="padding:3px 6px;font-weight:400;width:46px">설정</th><th style="padding:3px 6px;font-weight:400;width:54px">동</th><th style="padding:3px 6px;font-weight:400;width:48px">${gsGuideDir==='am'?'등원':'하원'}</th><th style="padding:3px 6px;font-weight:400;width:84px">픽업</th><th style="padding:3px 6px;font-weight:400">상세주소</th><th style="padding:3px 6px;font-weight:400">특이사항</th><th style="padding:3px 6px;font-weight:400;width:96px" title="이용시간(하원−등원)과 수가 구간(3·6·8·10·12시간)">이용시간</th><th style="padding:3px 6px;font-weight:400;width:46px">보류</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>`;
@@ -5030,7 +5319,7 @@ function gsOvEditorRow(e){
   const vehOpts='<option value="">자동</option>'+gsVehicles.map(v=>`<option value="${v.id}"${String(o.fixVehId)===String(v.id)?' selected':''}>${esc(v.no||v.type)}</option>`).join('');
   const exclChips=gsVehicles.map(v=>{ const on=(o.excludeVehIds||[]).map(String).indexOf(String(v.id))>=0; return `<span onclick="gsOvSet('${nm}','exclToggle',${v.id})" style="cursor:pointer;font-size:10px;padding:2px 6px;border-radius:4px;border:0.5px solid ${on?'#9A3412':'var(--border)'};background:${on?'#fdecec':'transparent'};color:${on?'#9A3412':'var(--text2)'}">${on?'✕ ':''}${esc(v.no||v.type)}</span>`; }).join(' ');
   const tgt=[0,6,8,10,12].map(h=>`<option value="${h}"${(o.targetUse||0)===h?' selected':''}>${h?h+'시간':'자동'}</option>`).join('');
-  return `<tr><td colspan="6" style="padding:9px 10px;background:#f2f9f6;border-top:0.5px solid #0F6E56">
+  return `<tr><td colspan="10" style="padding:9px 10px;background:#f2f9f6;border-top:0.5px solid #0F6E56">
     <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
       <label style="font-size:11px;color:var(--text2)">목표 이용(수가)<br><select onchange="gsOvSet('${nm}','targetUse',this.value)" style="${GS}">${tgt}</select></label>
       <label style="font-size:11px;color:var(--text2)">차량 고정<br><select onchange="gsOvSet('${nm}','fixVehId',this.value)" style="${GS}">${vehOpts}</select></label>
