@@ -130,6 +130,7 @@
   <span style="font-weight:500;font-size:14px">현재 지점: <b id="curBranch" style="color:var(--info)"></b></span>
   <span id="syncBadge" style="font-size:12px;font-weight:500"></span>
   <button class="btn" id="refreshBtn" title="중앙에서 최신 데이터를 다시 받아옵니다 (다른 사람이 수정한 내용 반영)">🔄 새로고침</button>
+  <button class="btn" id="migrateBtn" title="이 지점의 자료를 본부 중앙DB로 올립니다" style="display:none;border-color:var(--duty);color:var(--duty);font-weight:600">🌐 중앙DB로 전환</button>
   <button class="btn" id="changeBranch">지점 변경 / 로그아웃</button>
   <span style="width:1px;height:20px;background:var(--line2)"></span>
   <button class="btn" id="exportBtn" title="모든 지점 데이터를 백업 파일 하나로 저장합니다">💾 전체 백업</button>
@@ -138,6 +139,11 @@
   <span style="width:1px;height:20px;background:var(--line2)"></span>
   <button class="btn" id="suggestBtn" title="개선·건의 사항을 보냅니다" style="border-color:var(--info);color:var(--info)">💬 건의하기</button>
   <span class="sub" style="margin:0;color:var(--tx3);font-size:12px">불편한 점·바라는 점을 보내주세요 · 백업은 구글드라이브에 보관</span>
+ </div>
+
+ <div id="migrateHint" class="card noprint" style="display:none;background:#fffbeb;border:1px solid var(--duty);padding:12px 16px;line-height:1.6">
+  <b style="color:var(--duty)">💡 이 지점은 아직 '내 컴퓨터에만' 저장돼 있어요.</b><br>
+  <span style="font-size:13px">이 지점의 <b>최종(확정) 근무관리표를 가진 분</b>이 위 <b>🌐 중앙DB로 전환</b>을 눌러주세요. 지금 화면의 자료가 그대로 본부 중앙DB로 올라가, 본부와 다른 컴퓨터에서도 같은 자료를 보게 됩니다. <span style="color:var(--tx3)">(자료가 없는 컴퓨터에서 누르면 빈 자료가 올라가니 주의)</span></span>
  </div>
 
  <div class="modal-ov hide" id="suggestModal">
@@ -470,7 +476,7 @@
    <div id="finalMxWrap" class="hide" style="overflow:auto"><div id="finalTable"></div></div>
   </div>
  </section>
- <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.8 (관리자 비번 기억[새로고침에도 재입력X]·승인지점 삭제 · 새 버전 알림 팝업 · 로그인 유지[F5에도 안 튕김]·새로고침 자동 최신·🔄버튼 · 지점 신청·관리자 승인/조회 · 중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
+ <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v5.9 (지점 중앙DB로 전환[최종표 보유자가 이름·비번 적어 업로드]·본부 대시보드[보낸사람·수정일] · 관리자 비번 기억·승인지점 삭제 · 새 버전 알림 팝업 · 로그인 유지[F5에도 안 튕김]·새로고침 자동 최신·🔄버튼 · 지점 신청·관리자 승인/조회 · 중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
 </div>
 
 <script>
@@ -564,7 +570,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='5.8';
+ const APP_VERSION='5.9';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -601,7 +607,7 @@
   if(!pend.length)p.innerHTML='<span class="sub" style="margin:0">대기 중인 신청이 없습니다.</span>';
   pend.forEach(function(name){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)';var nm=document.createElement('span');nm.style.cssText='flex:1;font-weight:500';nm.textContent=name;row.appendChild(nm);var ok=document.createElement('button');ok.className='btn pri';ok.textContent='승인';ok.onclick=function(){centralPost({action:'admin_approve',master:adminMaster,name:name}).then(adminReload);};row.appendChild(ok);var no=document.createElement('button');no.className='btn';no.textContent='거절';no.onclick=function(){if(confirm('['+name+'] 신청을 거절(삭제)할까요?'))centralPost({action:'admin_reject',master:adminMaster,name:name}).then(adminReload);};row.appendChild(no);p.appendChild(row);});
   if(!appr.length)a.innerHTML='<span class="sub" style="margin:0">승인된 지점이 없습니다.</span>';
-  appr.forEach(function(name){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)';var nm=document.createElement('span');nm.style.cssText='flex:1';nm.textContent=name;row.appendChild(nm);var v=document.createElement('button');v.className='btn';v.textContent='조회';v.onclick=function(){adminView(name);};row.appendChild(v);var del=document.createElement('button');del.className='btn';del.textContent='삭제';del.style.cssText='color:var(--danger);border-color:var(--danger)';del.onclick=function(){if(confirm('['+name+'] 지점을 삭제할까요?\n\n⚠️ 이 지점의 모든 근무표 데이터가 함께 사라지고, 되돌릴 수 없습니다.\n해당 지점은 다시 신청→승인을 받아야 사용할 수 있습니다.'))centralPost({action:'admin_reject',master:adminMaster,name:name}).then(adminReload);};row.appendChild(del);a.appendChild(row);});
+  appr.forEach(function(it){var name=(it&&typeof it==='object')?(it.name||''):it,by=(it&&typeof it==='object')?(it.by||''):'',up=(it&&typeof it==='object')?(it.updated||''):'';var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)';var col=document.createElement('div');col.style.cssText='flex:1';var nm=document.createElement('div');nm.style.cssText='font-weight:500';nm.textContent=name;col.appendChild(nm);if(by||up){var meta=document.createElement('div');meta.className='sub';meta.style.cssText='margin:0;font-size:11px;color:var(--tx3)';meta.textContent=(by?'보낸사람: '+by:'')+(by&&up?' · ':'')+(up?'수정 '+up:'');col.appendChild(meta);}row.appendChild(col);var v=document.createElement('button');v.className='btn';v.textContent='조회';v.onclick=function(){adminView(name);};row.appendChild(v);var del=document.createElement('button');del.className='btn';del.textContent='삭제';del.style.cssText='color:var(--danger);border-color:var(--danger)';del.onclick=function(){if(confirm('['+name+'] 지점을 삭제할까요?\n\n⚠️ 이 지점의 모든 근무표 데이터가 함께 사라지고, 되돌릴 수 없습니다.\n해당 지점은 다시 신청→승인을 받아야 사용할 수 있습니다.'))centralPost({action:'admin_reject',master:adminMaster,name:name}).then(adminReload);};row.appendChild(del);a.appendChild(row);});
  }
  function adminView(name){centralPost({action:'admin_view',master:adminMaster,branch:name}).then(function(res){if(!res||!res.ok){alert('조회 실패');return;}var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){}adminViewMode=true;branch=name;setBranch(name);S=normalize(data||JSON.parse(JSON.stringify(DEFAULT)));closeModal('adminModal');document.getElementById('loginOv').classList.add('hide');renderBranchTabs();refreshAll();var el=document.getElementById('syncBadge');if(el){el.textContent='👁 관리자 조회 (읽기전용)';el.style.color='var(--danger)';}});}
  function openSuggest(){var sb=document.getElementById('sgBranch');if(sb)sb.textContent=branch||'-';var m=document.getElementById('sgMsg');if(m)m.textContent='';openModal('suggestModal');var t=document.getElementById('sgText');if(t)setTimeout(function(){t.focus();},50);}
@@ -623,7 +629,7 @@
  function setSaves(a){try{localStorage.setItem(savesKey(branch),JSON.stringify(a));}catch(e){}}
  function saveAll(){S.savedAt=new Date().toISOString();save();const saves=getSaves();const mm=parseInt(S.month.slice(5),10);const k2=saves.filter(s=>s.data&&s.data.month===S.month).length+1;const label=mm+'월 '+k2+'차';saves.unshift({at:S.savedAt,label:label,data:JSON.parse(JSON.stringify(S))});if(saves.length>10)saves.length=10;setSaves(saves);showSavedAt();renderSaveList();const el=document.getElementById('savedAtMsg');if(el){el.style.color='var(--duty)';el.textContent=label+' 저장 완료!';setTimeout(()=>{el.style.color='var(--tx3)';showSavedAt();},2000);}}
  function renderSaveList(){const el=document.getElementById('saveList');if(!el)return;const saves=getSaves();el.innerHTML='';if(!saves.length)return;const h=document.createElement('div');h.className='sub';h.style.margin='4px 0';h.textContent='저장된 내용 — 불러오기를 누르면 그때 내용으로 되돌아갑니다';el.appendChild(h);saves.forEach((s,i)=>{const row=document.createElement('div');row.className='row';row.style.cssText='gap:8px;margin-bottom:5px';const lbl=document.createElement('span');lbl.style.cssText='font-size:13px;min-width:150px';lbl.textContent=(s.label?s.label+' · ':'')+fmtDt(s.at);const load=document.createElement('button');load.className='btn';load.textContent='불러오기';load.onclick=()=>{if(confirm(fmtDt(s.at)+' 저장본으로 되돌릴까요? 지금 입력한 내용은 사라집니다.'))loadSnapshot(i);};const del=document.createElement('button');del.className='btn';del.textContent='삭제';del.onclick=()=>{const a=getSaves();a.splice(i,1);setSaves(a);renderSaveList();};row.appendChild(lbl);row.appendChild(load);row.appendChild(del);el.appendChild(row);});}
- function refreshAll(){sortRoster();$('#month').value=S.month;$('#greetUse').checked=S.greetUse;$('#greetMin').value=S.greetMin;$('#fixedCount').value=S.fixedCount;greetHintUpdate();syncMinTeam();updateStdRef();recomputeOffsets();renderRoster();renderPalettes();renderSatGroups();renderCars();renderEvents();refreshReqUI();if(typeof renderGenSummary==='function')renderGenSummary();updateCounts();showSavedAt();renderSaveList();renderBranchTabs();renderCalendar();}
+ function refreshAll(){sortRoster();$('#month').value=S.month;$('#greetUse').checked=S.greetUse;$('#greetMin').value=S.greetMin;$('#fixedCount').value=S.fixedCount;greetHintUpdate();syncMinTeam();updateStdRef();recomputeOffsets();renderRoster();renderPalettes();renderSatGroups();renderCars();renderEvents();refreshReqUI();if(typeof renderGenSummary==='function')renderGenSummary();updateCounts();showSavedAt();renderSaveList();renderBranchTabs();renderCalendar();updateMigrateUI();}
  function loadSnapshot(i){const saves=getSaves();if(!saves[i])return;S=normalize(JSON.parse(JSON.stringify(saves[i].data)));save();refreshAll();}
  function renderBranchTabs(){const el=document.getElementById('curBranch');if(el)el.textContent=branch;}
  const pwKey=b=>'geunmuPw::'+b;
@@ -678,6 +684,25 @@
    if(res&&res.ok){var data=null;try{data=res.data?JSON.parse(res.data):null;}catch(e){}if(data){S=normalize(data);if(centralSaveTimer)clearTimeout(centralSaveTimer);try{localStorage.setItem(stateKey(branch),JSON.stringify(S));}catch(e){}refreshAll();}setSync('ok');}
    else{setSync('off');}
   }).catch(function(){setSync('off');}).then(function(){if(rb){rb.disabled=false;rb.textContent='🔄 새로고침';}});
+ }
+ function updateMigrateUI(){var b=document.getElementById('migrateBtn'),h=document.getElementById('migrateHint');var show=branch&&!adminViewMode&&!inCentral(branch);if(b)b.style.display=show?'':'none';if(h)h.style.display=show?'':'none';}
+ function migrateNow(){
+  if(!branch||adminViewMode)return;
+  if(inCentral(branch)){alert('이미 중앙DB 지점입니다.');return;}
+  var by=prompt('이 지점("'+branch+'")의 자료를 본부 중앙DB로 올립니다.\n\n① 보내는 사람 이름을 적어주세요 (본부가 누가 보냈는지 확인용):');
+  if(by==null)return;by=String(by).trim();
+  if(!by){alert('보내는 사람 이름을 적어주세요.');return;}
+  var pw=prompt('② 앞으로 이 지점 로그인에 쓸 비밀번호를 정하세요 (4자리 이상):');
+  if(pw==null)return;pw=String(pw).trim();
+  if(pw.length<4){alert('비밀번호는 4자리 이상으로 정해주세요.');return;}
+  if(!confirm('"'+branch+'" 지점의 지금 화면 자료를 본부로 올리고, 승인을 요청합니다.\n보내는 사람: '+by+'\n\n계속할까요?'))return;
+  var btn=document.getElementById('migrateBtn');if(btn){btn.disabled=true;btn.textContent='⏳ 올리는 중…';}
+  setSync('save');
+  centralPost({action:'request',name:branch,pw:pw,by:by,data:JSON.stringify(S)}).then(function(res){
+   if(res&&res.ok){setPw(branch,pw);setSync('ok');alert('✅ 올렸습니다!\n\n본부 승인 후 이 지점은 중앙DB 지점이 됩니다.\n승인되면 어느 컴퓨터에서든 새로고침으로 같은 자료를 볼 수 있어요.');}
+   else{setSync('off');alert('전환 실패: '+((res&&res.error)||'알 수 없는 오류')+'\n\n(이미 같은 이름이 신청/등록돼 있을 수 있어요. 본부에 문의하세요.)');}
+  }).catch(function(){setSync('off');alert('연결 실패 — 인터넷을 확인해주세요.\n(서버가 잠깐 깨어나는 중이면 잠시 후 다시 시도해주세요.)');})
+   .then(function(){if(btn){btn.disabled=false;btn.textContent='🌐 중앙DB로 전환';}});
  }
  function switchBranch(b){if(b===branch)return;save();setBranch(b);branch=b;let ns=null;try{ns=JSON.parse(localStorage.getItem(stateKey(b)));}catch(e){ns=null;}S=normalize(ns||JSON.parse(JSON.stringify(DEFAULT)));save();refreshAll();}
  function resetCurrent(){if(!confirm('['+branch+'] 지점의 입력 내용을 기본값으로 초기화할까요? (저장본은 유지됩니다)'))return;S=normalize(JSON.parse(JSON.stringify(DEFAULT)));save();refreshAll();}
@@ -1306,7 +1331,7 @@
  document.getElementById('resetBtn').onclick=resetCurrent;
  showSavedAt();renderSaveList();renderBranchTabs();
  document.getElementById('changeBranch').onclick=logout;
- (function(){var rfb=document.getElementById('refreshBtn');if(rfb)rfb.onclick=refreshNow;})();
+ (function(){var rfb=document.getElementById('refreshBtn');if(rfb)rfb.onclick=refreshNow;var mgb=document.getElementById('migrateBtn');if(mgb)mgb.onclick=migrateNow;})();
  (function(){var eb=document.getElementById('exportBtn');if(eb)eb.onclick=exportData;var ib=document.getElementById('importBtn'),ifl=document.getElementById('importFile');if(ib&&ifl){ib.onclick=function(){ifl.click();};ifl.onchange=function(){var f=ifl.files&&ifl.files[0];if(f)importData(f);ifl.value='';};}var sgb=document.getElementById('suggestBtn');if(sgb)sgb.onclick=openSuggest;var sgs=document.getElementById('sgSend');if(sgs)sgs.onclick=sendSuggestion;})();
  document.getElementById('loginPwBtn').onclick=submitLogin;
  document.getElementById('loginPwCancel').onclick=()=>document.getElementById('loginPwArea').classList.add('hide');
