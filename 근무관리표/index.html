@@ -489,7 +489,7 @@
    <div id="finalMxWrap" class="hide" style="overflow:auto"><div id="finalTable"></div></div>
   </div>
  </section>
- <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v6.0 (본부 관리자 지점바[지점 클릭 전환·조회/수정 토글·지점에 저장] · 지점 중앙DB로 전환[최종표 보유자가 이름·비번 적어 업로드]·본부 대시보드[보낸사람·수정일] · 관리자 비번 기억·승인지점 삭제 · 새 버전 알림 팝업 · 로그인 유지[F5에도 안 튕김]·새로고침 자동 최신·🔄버튼 · 지점 신청·관리자 승인/조회 · 중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
+ <div class="sub noprint" style="text-align:center;margin-top:10px">근무관리표 v6.1 (로그인 ☁중앙/💻로컬 구분표시 · 본부 관리자 지점바[지점 클릭 전환·조회/수정 토글·지점에 저장] · 지점 중앙DB로 전환[최종표 보유자가 이름·비번 적어 업로드]·본부 대시보드[보낸사람·수정일] · 관리자 비번 기억·승인지점 삭제 · 새 버전 알림 팝업 · 로그인 유지[F5에도 안 튕김]·새로고침 자동 최신·🔄버튼 · 지점 신청·관리자 승인/조회 · 중앙DB 연동[지점 데이터 공유·서버 비번검증·자동저장] · 데이터 안전망 · 로그인 백업복원 · 💬 건의하기[슬랙] · 지점 이름 직접 추가 · 웹앱 자동업데이트 · 반/층·케어포 엑셀 · 차량 드롭다운/음영 · 표 화살표 · 최종 송영맞이 · 차량 동시휴무 방지 · 토요 최소근무 보정 · 전체백업) · 새 파일로 교체해도 입력한 자료는 그대로 유지됩니다</div>
 </div>
 
 <script>
@@ -583,7 +583,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='6.0';
+ const APP_VERSION='6.1';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -659,12 +659,15 @@
   const el=document.getElementById('loginBranches');if(!el)return;el.innerHTML='';
   const local=getBranchList();const list=(centralBranches!==null)?centralBranches.concat(local.filter(function(b){return centralBranches.indexOf(b)<0;})):local;
   const empty=document.getElementById('loginEmptyMsg');if(empty)empty.classList.toggle('hide',list.length>0);
+  let anyCentral=false,anyLocal=false;
   list.forEach(b=>{
    const wrap=document.createElement('span');wrap.style.cssText='display:inline-flex;align-items:center';
-   const btn=document.createElement('button');btn.className='btn'+(b===branch?' on':'');btn.style.cssText='padding:10px 14px;font-size:15px';btn.textContent=b+(getPw(b)?'':' (신규)');btn.onclick=()=>startLogin(b);wrap.appendChild(btn);
+   const central=inCentral(b);if(central)anyCentral=true;else anyLocal=true;
+   const btn=document.createElement('button');btn.className='btn'+(b===branch?' on':'');btn.style.cssText='padding:10px 14px;font-size:15px';btn.textContent=(central?'☁ ':'💻 ')+b;btn.title=central?'중앙DB 지점 — 어느 컴퓨터에서나 같은 자료':'이 컴퓨터 전용(로컬) — 아직 중앙DB로 전환 안 됨';btn.onclick=()=>startLogin(b);wrap.appendChild(btn);
    if(loginEditMode){const x=document.createElement('button');x.className='btn';x.textContent='×';x.title='목록에서 제거(데이터는 보존)';x.style.cssText='padding:8px 9px;margin-left:-2px;color:var(--danger);font-weight:700';x.onclick=()=>{if(confirm('['+b+']를 목록에서 지웁니다.\n데이터는 남아있어 같은 이름으로 다시 추가하면 복구됩니다.\n계속할까요?')){removeBranchName(b);renderLoginBranches();}};wrap.appendChild(x);}
    el.appendChild(wrap);
   });
+  if(anyCentral||anyLocal){const lg=document.createElement('div');lg.style.cssText='flex-basis:100%;width:100%;font-size:12px;color:var(--tx3);margin-top:6px';lg.innerHTML=(anyCentral?'<b>☁ 중앙DB</b> 어디서나 같은 자료':'')+(anyCentral&&anyLocal?' &nbsp;·&nbsp; ':'')+(anyLocal?'<b>💻 이 컴퓨터 전용</b> 아직 중앙DB로 전환 안 됨':'');el.appendChild(lg);}
  }
  function showLogin(){const ov=document.getElementById('loginOv');if(!ov)return;ov.classList.remove('hide');document.getElementById('loginPwArea').classList.add('hide');renderLoginBranches();centralGet('branches').then(function(res){if(res&&res.ok&&Array.isArray(res.branches)){centralBranches=res.branches;renderLoginBranches();}}).catch(function(){});}
  function startLogin(b){loginBranch=b;const has=!!getPw(b);document.getElementById('loginPwArea').classList.remove('hide');document.getElementById('loginPwTitle').textContent='['+b+'] '+(has?'비밀번호 입력 (4자리)':'새 비밀번호 설정 (숫자 4자리)');const inp=document.getElementById('loginPwInput');inp.value='';document.getElementById('loginPwMsg').textContent='';inp.focus();}
