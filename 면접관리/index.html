@@ -236,7 +236,7 @@ function initLogin(){
   if(!pw){setMsg('비밀번호를 입력하세요.');return;}
   busy(true);setMsg('확인 중…','var(--ink3)');
   centralPost({action:'iv_login',branch:b,pw:pw}).then(function(res){
-   if(res&&res.ok){branch=b;myPw=pw;isAdmin=false;loadRecords().then(function(){busy(false);enter();});}
+   if(res&&res.ok){branch=b;myPw=pw;isAdmin=false;loadRecords().then(function(){busy(false);enter();},function(){busy(false);setMsg('연결이 불안정해요. 다시 시도해주세요.');});}
    else{busy(false);setMsg('비밀번호가 맞지 않아요. (근무관리표와 같은 비번)');}
   }).catch(function(){busy(false);setMsg('연결 실패 — 인터넷을 확인하세요.');});
  };
@@ -384,10 +384,18 @@ document.getElementById('recoConfirm').onclick=function(){pending.reReco=documen
 document.getElementById('recoSkip').onclick=function(){pending.reReco=false;closeOv('recoOv');commit(pending);};
 
 /* 합격 → 근무이력 모달 */
-function openCareer(){document.getElementById('carBranchWrap').classList.add('hide');document.getElementById('carBranch').value='';pending.career=false;openOv('careerOv');}
-document.getElementById('carNo').onclick=function(){pending.career=false;document.getElementById('carBranchWrap').classList.add('hide');};
-document.getElementById('carYes').onclick=function(){pending.career=true;document.getElementById('carBranchWrap').classList.remove('hide');};
+function openCareer(){document.getElementById('carBranchWrap').classList.add('hide');document.getElementById('carBranch').value='';pending.career=false;pending.careerChosen=false;
+ document.getElementById('carNo').classList.remove('pri');document.getElementById('carYes').classList.remove('pri');
+ var cc=document.getElementById('carConfirm');cc.disabled=true;cc.style.opacity='.5';
+ openOv('careerOv');}
+function careerChoose(yes){pending.career=yes;pending.careerChosen=true;
+ document.getElementById('carBranchWrap').classList.toggle('hide',!yes);
+ document.getElementById('carNo').classList.toggle('pri',!yes);document.getElementById('carYes').classList.toggle('pri',yes);
+ var cc=document.getElementById('carConfirm');cc.disabled=false;cc.style.opacity='1';}
+document.getElementById('carNo').onclick=function(){careerChoose(false);};
+document.getElementById('carYes').onclick=function(){careerChoose(true);};
 document.getElementById('carConfirm').onclick=function(){
+ if(!pending.careerChosen){return;}
  if(pending.career){pending.careerBranch=(document.getElementById('carBranch').value||'').trim();pending.hq='pending';}
  else{pending.hq='none';}
  closeOv('careerOv');commit(pending);
