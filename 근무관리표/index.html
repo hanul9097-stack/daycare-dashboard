@@ -195,6 +195,7 @@
   <button class="btn" id="refreshBtn" title="중앙에서 최신 데이터를 다시 받아옵니다 (다른 사람이 수정한 내용 반영)">🔄 새로고침</button>
   <button class="btn" id="migrateBtn" title="이 지점의 자료를 본부 중앙DB로 올립니다" style="display:none;border-color:var(--duty);color:var(--duty);font-weight:600">🌐 중앙DB로 전환</button>
   <button class="btn" id="changeBranch">지점 변경 / 로그아웃</button>
+  <button class="btn" onclick="window.open('../면접관리/','_blank')" title="면접·채용 관리 (같은 지점 비밀번호)" style="border-color:#4f46b8;color:#4f46b8;font-weight:600">📋 면접관리</button>
   <button class="btn" id="topAdminBtn" title="본부 관리자 모드로 들어갑니다 (비밀번호 한 번만, 이후 기억)" style="border-color:var(--info);color:var(--info);font-weight:600">🔧 관리자</button>
   <span style="width:1px;height:20px;background:var(--line2)"></span>
   <button class="btn" id="exportBtn" title="모든 지점 데이터를 백업 파일 하나로 저장합니다">💾 전체 백업</button>
@@ -692,7 +693,7 @@
     <li><b>v6.2 새 화면</b> — 세로 7탭 재구성, 첫 화면 지점 클릭 로그인(처음 비번 0000)·최초 로그인 비번 변경, 📤 월 근무표 본부보고(슬랙), 점검→조치(급여보상·대체휴무·맞교대), 장기요양 고시 근무일수</li>
     <li><b>v6.3 생활실 업무 분장표(7번 탭)</b> — 날짜별 층/구역별 근무자 자동 + 시간×구역 표에 프로그램·담당 배정 + 텍스트 복사(밴드·카톡)·인쇄, 지점별 템플릿(구역·업무 항목) 편집</li>
    </ol>
-   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v7.1</div>
+   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v7.2</div>
   </details>
  </footer>
 </div>
@@ -821,7 +822,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='7.1';
+ const APP_VERSION='7.2';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -1099,8 +1100,7 @@
  // 개인 휴일 목표 = 운영일 − 근무가능일 (입사일 이후만 셈 → 중간입사는 비례). 입사일 없으면 그 달 전체 = N
  function personOffTarget(n,y,m){const j=S.joinDate&&S.joinDate[n];const days=new Date(y,m+1,0).getDate();let op=0,wk=0;for(let d=1;d<=days;d++){const dow=new Date(y,m,d).getDay();const key=k(y,m,d);if(j&&key<j)continue;if(dow!==0)op++;if(dow>=1&&dow<=5&&!HOL[key])wk++;}return Math.max(0,op-wk);}
  function gositCalc(y,m){const days=new Date(y,m+1,0).getDate();let sat=0,sun=0,hol=0;for(let d=1;d<=days;d++){const dow=new Date(y,m,d).getDay(),key=k(y,m,d);if(dow===6){sat++;continue;}if(dow===0){sun++;continue;}if(HOL[key])hol++;}let workable=days-sat-sun-hol;const ov=+(S.gositOverride||0);if(ov>0)workable=ov;workable=Math.max(0,workable);return {days:days,sat:sat,sun:sun,hol:hol,workable:workable,hours:workable*8,override:ov>0};}
- function renderGositRef(){var el=document.getElementById('gositRef');if(!el)return;var c=curDate(),g=gositCalc(c.getFullYear(),c.getMonth());el.innerHTML='전체 '+g.days+'일 − 토 '+g.sat+' − 일 '+g.sun+' − 공휴일 '+g.hol+' = <b>근무가능일수 '+g.workable+'일</b>'+(g.override?' <span style="color:var(--fixed)">(직접 지정)</span>':'')+' &nbsp;→&nbsp; <b style="color:var(--stair);font-size:14px">월 기준 근무시간 '+g.hours+'시간</b> <span style="color:var(--tx3)">(× 8h)</span>';var ov=document.getElementById('gositOverride');if(ov&&document.activeElement!==ov)ov.value=S.gositOverride||0;}
- function updateStdRef(){const c=curDate(),y=c.getFullYear(),m=c.getMonth();const st=monthStd(y,m);renderGositRef();const fc=document.getElementById('fixedCount');if(S.fixedAutoCalc){S.fixedCount=st.offTarget;if(fc)fc.value=S.fixedCount;save();}if(fc){fc.disabled=!!S.fixedAutoCalc;fc.title=S.fixedAutoCalc?'법 기준 자동 — 수정하려면 체크 해제':'';}const ac=document.getElementById('fixedAutoCalc');if(ac)ac.checked=!!S.fixedAutoCalc;var total=S.fixedCount||0;var des=Math.min(S.designate||0,total);var auto=Math.max(0,total-des);var di=document.getElementById('designate');if(di&&document.activeElement!==di)di.value=S.designate||0;var as=document.getElementById('autoShow');if(as)as.textContent=auto;const el=document.getElementById('stdRef');if(el){var warn=(!S.fixedAutoCalc&&total<st.offTarget)?' <span style="color:var(--danger)">⚠ 법 기준('+st.offTarget+'일)보다 적게 설정됨</span>':'';el.innerHTML='📅 이달 운영일 <b>'+st.operating+'</b> · 근무가능일 <b>'+st.workable+'</b> · <b>법정 총 휴일 '+total+'일 = 근로자 지정 '+des+' + 자동 '+auto+'</b>'+(S.fixedAutoCalc?'':warn)+' <span style="color:var(--tx3)">· 자동은 각자 지정 수에 맞춰 조정되어 항상 총 '+total+'일</span>';}}
+ function updateStdRef(){const c=curDate(),y=c.getFullYear(),m=c.getMonth();const st=monthStd(y,m);const fc=document.getElementById('fixedCount');if(S.fixedAutoCalc){S.fixedCount=st.offTarget;if(fc)fc.value=S.fixedCount;save();}if(fc){fc.disabled=!!S.fixedAutoCalc;fc.title=S.fixedAutoCalc?'법 기준 자동 — 수정하려면 체크 해제':'';}const ac=document.getElementById('fixedAutoCalc');if(ac)ac.checked=!!S.fixedAutoCalc;var total=S.fixedCount||0;var des=Math.min(S.designate||0,total);var auto=Math.max(0,total-des);var di=document.getElementById('designate');if(di&&document.activeElement!==di)di.value=S.designate||0;var as=document.getElementById('autoShow');if(as)as.textContent=auto;const el=document.getElementById('stdRef');if(el){var warn=(!S.fixedAutoCalc&&total<st.offTarget)?' <span style="color:var(--danger)">⚠ 법 기준('+st.offTarget+'일)보다 적게 설정됨</span>':'';el.innerHTML='📅 이달 운영일 <b>'+st.operating+'</b> · 근무가능일 <b>'+st.workable+'</b> · <b>법정 총 휴일 '+total+'일 = 근로자 지정 '+des+' + 자동 '+auto+'</b>'+(S.fixedAutoCalc?'':warn)+' <span style="color:var(--tx3)">· 자동은 각자 지정 수에 맞춰 조정되어 항상 총 '+total+'일</span>';}}
  function compReport(y,m){const days=new Date(y,m+1,0).getDate();const std=monthStd(y,m).workable;const worked={};allNames().forEach(n=>worked[n]=0);for(let d=1;d<=days;d++){const dow=new Date(y,m,d).getDay();if(dow===0)continue;const cd=computeDay(y,m,d);cd.working.forEach(n=>{if(n in worked)worked[n]++;});}const rows=allNames().filter(n=>!isPT(n)).map(n=>({name:n,worked:worked[n],std:std,comp:Math.max(0,worked[n]-std)}));return {std:std,rows:rows};}
  function renderCompReport(){const el=document.getElementById('compPanel');if(!el)return;const c=curDate(),y=c.getFullYear(),m=c.getMonth();const rep=compReport(y,m);const over=rep.rows.filter(r=>r.comp>0);let h='<h2 style="font-size:15px;margin:0 0 6px">근무일수 점검 · 급여보상 대상 (자동)</h2>';h+='<p class="sub" style="margin:0 0 8px">월 기준 근무가능일 <b>'+rep.std+'일</b> 초과 근무 = 휴무 미충족 → 급여보상 대상. (금액 계산 없음 · 인사팀 전달용)</p>';if(!over.length){h+='<p class="sub" style="margin:0">기준 초과 근무자가 없습니다. 모두 적정 휴무 ✓</p>';}else{h+='<table class="rqt" style="width:auto"><thead><tr><th>이름</th><th>근무일</th><th>기준일</th><th>보상(일)</th></tr></thead><tbody>';over.forEach(r=>{h+='<tr><td class="rnm">'+r.name+'</td><td>'+r.worked+'</td><td>'+r.std+'</td><td style="color:var(--danger);font-weight:700">'+r.comp+'</td></tr>';});h+='</tbody></table>';}el.innerHTML=h;}
  const $=s=>document.querySelector(s);
@@ -1897,7 +1897,6 @@
  $('#fixedCount').onchange=e=>{S.fixedCount=+e.target.value;S.fixedAutoCalc=false;save();updateStdRef();flagRegen();renderCalendar();};
  (function(){var fac=document.getElementById('fixedAutoCalc');if(fac)fac.onchange=e=>{S.fixedAutoCalc=e.target.checked;save();updateStdRef();renderCalendar();};})();
  (function(){var di=document.getElementById('designate');if(di)di.onchange=e=>{S.designate=Math.max(0,+e.target.value||0);save();updateStdRef();};})();
- (function(){var gi=document.getElementById('gositOverride');if(gi)gi.onchange=e=>{S.gositOverride=Math.max(0,+e.target.value||0);save();renderGositRef();};})();
  updateStdRef();
  syncMinTeam();
  $('#minHaeng').onchange=e=>{S.minTeam['행정팀']=+e.target.value||0;save();flagRegen();renderCalendar();};
@@ -1908,7 +1907,6 @@
  $('#minGanhoSat').onchange=e=>{S.minTeamSat['간호요양팀']=+e.target.value||0;save();flagRegen();renderCalendar();};
  $('#greetMinSat').onchange=e=>{S.greetMinSat=+e.target.value||0;save();flagRegen();renderCalendar();};
  refreshReqUI();
- (function(){var _op=document.getElementById('openPay');if(_op)_op.onclick=()=>{refreshReqUI();openModal('payModal');};})();
  (function(){var rb=document.getElementById('reGen');if(rb)rb.onclick=()=>{generateBalanced();clearRegen();renderCalendar();renderChecks();const m=document.getElementById('reGenMsg');if(m){m.textContent='✓ 새 배치를 만들었습니다 — 마음에 안 들면 다시 누르세요';setTimeout(()=>{m.textContent='근무 인원·배치를 바꾸고 싶으면 눌러 다른 경우의 수를 만드세요 (조건·연차·근로자지정은 유지)';},4000);}};})();
  document.getElementById('payWho').onchange=()=>{renderPayDays();};
  $('#month').onchange=e=>{S.month=e.target.value;save();updateStdRef();refreshReqUI();renderCalendar();updateLockUI();updateAdminLockBtn();};
@@ -1927,13 +1925,9 @@
  document.getElementById('openLoad').onclick=()=>openModal('loadModal');
  document.getElementById('goFinal').onclick=()=>switchView5('work');
  function setModalDate(id){var di=document.getElementById(id);if(di){var p=S.month.split('-');di.min=S.month+'-01';var last=new Date(+p[0],+p[1],0).getDate();di.max=S.month+'-'+String(last).padStart(2,'0');if(!di.value||di.value.indexOf(S.month)!==0)di.value=S.month+'-01';}}
- (function(){var va=document.getElementById('viewAnnual');if(va)va.onclick=()=>{refreshReqUI();setModalDate('annualDate');openModal('annualModal');};var vs=document.getElementById('viewSpecial');if(vs)vs.onclick=()=>{refreshReqUI();setModalDate('specialDate');openModal('specialModal');};var vp=document.getElementById('viewPay');if(vp)vp.onclick=()=>{refreshReqUI();openModal('payModal');};})();
  (function(){var aa=document.getElementById('annualAdd');if(aa)aa.onclick=addAnnualReq;var sa=document.getElementById('specialAdd');if(sa)sa.onclick=addSpecialReq;})();
  document.getElementById('finalViewCal').onclick=()=>setFinalView('cal');
  document.getElementById('finalViewMx').onclick=()=>setFinalView('mx');
- (function(){var fp=document.getElementById('finalPrint');if(fp)fp.onclick=()=>window.print();})();
- (function(){var ce=document.getElementById('exportCaport');if(ce)ce.onclick=exportCaport;})();
- (function(){var fs2=document.getElementById('finalSave');if(fs2)fs2.onclick=()=>{saveAll();const fm=document.getElementById('finalMsg');if(fm){fm.textContent='확정 저장됨!';setTimeout(()=>{fm.textContent='';},2000);}};})();
  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.getAttribute('data-close')));
  document.querySelectorAll('.modal-ov').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.add('hide');}));
  document.getElementById('genBtn').onclick=()=>{if(confirm('조건에 맞게 근무표를 자동 생성합니다. 달력에서 수동 조정한 내용은 새로 계산됩니다. 진행할까요?')){generateBalanced();clearRegen();showPage(5);switchView5('rest');}};

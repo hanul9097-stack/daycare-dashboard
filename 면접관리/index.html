@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>케어링 호남 · 면접관리</title>
+<style>
+  :root{
+    --ground:#f5f5f9; --card:#ffffff; --ink:#232433; --ink2:#5d5f73; --ink3:#9698ab;
+    --line:#e8e7ef; --line2:#d7d6e2;
+    --primary:#4f46b8; --primary-d:#3a3396; --primary-bg:#ecebfb;
+    --duty:#1f8a5b; --duty-bg:#e4f5ec;
+    --danger:#c0392b; --danger-bg:#fbeae8;
+    --warn:#b26a00; --warn-bg:#fdf3e2;
+    --gold:#b8860b; --gold-bg:#fdf6e0;
+    --info:#2f6fb0; --info-bg:#e9f1fa;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:'Apple SD Gothic Neo','Malgun Gothic','Pretendard',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:14px 14px 60px}
+  h2{font-size:18px;margin:0 0 4px} .sub{color:var(--ink2);font-size:13px;margin:0}
+  .btn{font:inherit;font-weight:600;padding:9px 15px;border-radius:10px;border:1px solid var(--line2);background:#fff;color:var(--ink);cursor:pointer}
+  .btn:hover{background:#faf9ff}
+  .btn.pri{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btn.pri:hover{background:var(--primary-d)}
+  .btn.sm{padding:5px 10px;font-size:12px;border-radius:8px}
+  .btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  input,select,textarea{font:inherit;color:var(--ink);border:1px solid var(--line2);border-radius:9px;padding:8px 10px;background:#fff}
+  textarea{resize:vertical;width:100%;box-sizing:border-box}
+  label.fld{display:inline-flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink2);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+  .p-ok{background:var(--duty-bg);color:var(--duty)} .p-no{background:var(--danger-bg);color:var(--danger)}
+  .p-hold{background:var(--warn-bg);color:var(--warn)} .p-gold{background:var(--gold-bg);color:var(--gold)}
+  .p-hq{background:#efe6fb;color:#6b3fb0}
+  /* top bar */
+  .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg,#fff,#fbfaff);border:1px solid var(--line);border-radius:14px;padding:11px 14px;margin-bottom:12px}
+  .brand{font-weight:800;font-size:16px;color:var(--primary-d);display:flex;align-items:center;gap:7px}
+  .who{font-size:13px;color:var(--ink2)} .who b{color:var(--ink)}
+  .spacer{flex:1}
+  /* nav */
+  .nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .nav button{font:inherit;font-weight:600;font-size:13px;padding:8px 13px;border-radius:999px;border:1px solid var(--line2);background:#fff;color:var(--ink2);cursor:pointer}
+  .nav button.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  .hide{display:none!important}
+  /* home tiles */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .tile{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff;cursor:pointer;transition:.12s}
+  .tile:hover{border-color:var(--primary);box-shadow:0 3px 10px rgba(79,70,184,.12);transform:translateY(-1px)}
+  .tile .ic{font-size:26px} .tile .t{font-weight:700;margin-top:6px} .tile .d{font-size:12px;color:var(--ink3);margin-top:2px}
+  .stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .stat .s{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+  .stat .n{font-size:24px;font-weight:800;color:var(--primary-d)} .stat .l{font-size:12px;color:var(--ink2);margin-top:2px}
+  /* table */
+  .twrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f3f2fa;font-size:12px;color:var(--ink2);font-weight:700;white-space:nowrap}
+  tr.reReco{background:var(--gold-bg)}
+  /* question */
+  .qcard{border:1px solid var(--line);border-left:4px solid var(--primary);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff}
+  .qcard .meta{font-size:12px;color:var(--ink3);margin-bottom:3px;display:flex;gap:8px;flex-wrap:wrap}
+  .badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--info-bg);color:var(--info)}
+  /* manual */
+  .man h3{margin:16px 0 6px;font-size:15px;color:var(--primary-d)}
+  .man ul{margin:4px 0;padding-left:20px} .man li{margin:3px 0}
+  .man .ex{color:var(--ink3);font-size:13px;background:#f7f6fb;border-radius:8px;padding:6px 9px;margin:3px 0}
+  /* eval rows */
+  .evrow{display:grid;grid-template-columns:120px 1fr 90px;gap:8px;align-items:start;margin-bottom:8px}
+  .evrow .role{font-weight:700;font-size:13px;background:#f3f2fa;border-radius:8px;padding:8px;text-align:center}
+  @media(max-width:560px){.evrow{grid-template-columns:1fr}.stat{grid-template-columns:repeat(2,1fr)}}
+  .banner{border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;margin:10px 0}
+  .b-warn{background:var(--warn-bg);color:var(--warn);border:1px solid #ecd3a0}
+  .b-info{background:var(--info-bg);color:var(--info);border:1px solid #c6ddf3}
+  /* modal */
+  .ov{position:fixed;inset:0;background:rgba(30,30,50,.5);display:none;align-items:center;justify-content:center;padding:18px;z-index:30}
+  .ov.on{display:flex}
+  .mbox{background:#fff;border-radius:14px;max-width:440px;width:100%;padding:18px;max-height:86vh;overflow:auto}
+  .previewbadge{position:fixed;top:8px;right:10px;background:#232433;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;z-index:20;opacity:.8}
+</style>
+</head>
+<body>
+<div class="previewbadge">케어링 호남 · 면접관리 v1</div>
+<div class="wrap">
+
+  <!-- 로그인 -->
+  <div id="login" class="card" style="max-width:440px;margin:40px auto">
+    <div class="brand" style="font-size:20px;margin-bottom:4px">🧑‍💼 케어링 호남 · 면접관리</div>
+    <p class="sub" style="margin-bottom:14px">주간보호 지점 채용·면접 시스템</p>
+    <label class="fld" style="width:100%">우리 지점
+      <select id="loginBranch" style="width:100%"></select>
+    </label>
+    <label class="fld" style="width:100%;margin-top:10px">비밀번호 <span style="font-weight:400;color:var(--ink3)">(근무관리표와 동일)</span>
+      <input id="loginPw" type="password" placeholder="지점 비밀번호" style="width:100%">
+    </label>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn pri" id="loginBtn" style="flex:1">로그인</button>
+      <button class="btn" id="loginAdmin" title="본부 관리자">본부</button>
+    </div>
+    <div id="loginMsg" class="sub" style="margin-top:8px;font-weight:600;min-height:18px"></div>
+    <p class="sub" style="margin-top:4px;color:var(--ink3);font-size:12px">※ 근무관리표와 같은 지점 비밀번호로 로그인합니다. 본부는 관리자 비번으로 '본부' 버튼.</p>
+  </div>
+
+  <!-- 앱 -->
+  <div id="app" class="hide">
+    <div class="topbar">
+      <div class="brand">🧑‍💼 면접관리</div>
+      <span class="who">👤 <b id="whoBranch"></b></span>
+      <span class="spacer"></span>
+      <button class="btn sm" onclick="window.open('../근무관리표/','_blank')">🗓 근무관리표</button>
+      <button class="btn sm" id="logoutBtn">로그아웃</button>
+    </div>
+    <div class="nav" id="nav"></div>
+    <div id="view"></div>
+  </div>
+
+</div>
+
+<!-- 채용확정: 근무이력 질문 모달 -->
+<div class="ov" id="careerOv">
+  <div class="mbox">
+    <h2>✅ 채용 확정 전 확인</h2>
+    <p class="sub" style="margin:6px 0 12px">합격 처리 전, 아래를 꼭 확인해주세요.</p>
+    <div style="font-weight:700;margin-bottom:6px">다른 <b>케어링 지점</b>에서 근무한 이력이 있나요?</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn" id="carNo" style="flex:1">아니오</button>
+      <button class="btn" id="carYes" style="flex:1">예, 있습니다</button>
+    </div>
+    <div id="carBranchWrap" class="hide">
+      <label class="fld" style="width:100%">어느 지점인가요?
+        <input id="carBranch" type="text" placeholder="예: 케어링 광주 서구점" style="width:100%">
+      </label>
+      <div class="banner b-warn" style="margin-top:10px">⚠️ 케어링 근무 이력자입니다 — <b>본부 승인</b>을 받아야 채용 가능합니다.<br>지금은 '본부 승인 대기'로 저장돼요.</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" onclick="closeOv('careerOv')">취소</button>
+      <button class="btn pri" id="carConfirm" style="flex:1">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 불합격: 재추천 모달 -->
+<div class="ov" id="recoOv">
+  <div class="mbox">
+    <h2>💛 아깝게 떨어진 분인가요?</h2>
+    <p class="sub" style="margin:6px 0 12px">이 지원자가 우리 지점엔 안 맞았지만 좋은 분이라면, <b>다른 지점에서 연락</b>할 수 있게 표시해드려요. (전 지점 공유 게시판에 뜸)</p>
+    <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:8px">
+      <input type="checkbox" id="recoChk"> 다른 지점에 추천 가능 (연락처 공유)
+    </label>
+    <label class="fld" style="width:100%">추천 사유 <span style="font-weight:400;color:var(--ink3)">(선택)</span>
+      <textarea id="recoNote" rows="2" placeholder="예: 조리 경력은 부족하나 태도가 좋고 성실함"></textarea>
+    </label>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" id="recoSkip">그냥 저장</button>
+      <button class="btn pri" id="recoConfirm" style="flex:1">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 데이터 ================= */
+var BRANCHES=['광주 동구점','광주 서구점','광주 남구점','광주 북구점','광주 봄날점','광주 첨단점','광주 용봉점','광주 운암동천점','여수점','군산점'];
+var JOBS=['요양보호사','사회복지사','운전원','간호(조무)사','조리원','기타'];
+var CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec'; // 근무관리표와 같은 중앙DB
+function centralPost(body){return fetch(CENTRAL_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(function(r){return r.json();});}
+var QBANK=[
+ ['요양보호사','면접태도','지점장','"안녕하세요, 간단하게 자기소개 부탁드립니다."'],
+ ['요양보호사','면접태도','지점장','"이전 직장은 어떤 이유로 그만두셨나요? 지금 새로운 곳을 찾으시게 된 계기가 있으신가요?"'],
+ ['요양보호사','지원동기','복지팀장','"저희 케어링에 지원하신 특별한 이유가 있으신가요?"'],
+ ['요양보호사','지원동기','복지팀장','"저희 기관에 대해 미리 알아보고 오셨나요? 어떤 이미지로 느끼셨는지 말씀해 주시겠어요?"'],
+ ['요양보호사','업무역량','요양팀장','"어르신을 케어할 때 가장 중요하게 생각하셔야 할 부분이 무엇이라고 생각하세요?"'],
+ ['요양보호사','업무역량','요양팀장','"치매 어르신이 이유 없이 화를 내거나 어렵게 하실 때, 어떻게 대응하시겠어요?"'],
+ ['요양보호사','조직협업','지점장','"이전 직장에서 동료와 의견이 달랐던 경험이 있으신가요? 그때 어떻게 하셨나요?"'],
+ ['요양보호사','조직협업','지점장','"팀원들과 함께 일할 때 본인이 어떤 역할을 주로 하시는 편인가요?"'],
+ ['사회복지사','면접태도','지점장','"안녕하세요, 간단하게 자기소개 부탁드립니다."'],
+ ['사회복지사','면접태도','지점장','"이전 직장은 어떤 이유로 그만두셨나요? 지금 새로운 곳을 찾으시게 된 계기가 있으신가요?"'],
+ ['사회복지사','지원동기','복지팀장','"저희 기관의 어떤 점이 지원 동기가 되셨나요?"'],
+ ['사회복지사','지원동기','복지팀장','"주간보호센터 사회복지사로서 가장 중요하다고 생각하시는 역할이 무엇인가요?"'],
+ ['사회복지사','업무역량','요양팀장','"어르신 프로그램을 기획하고 운영해 보신 경험이 있으신가요? 있다면 어떤 프로그램이었나요?"'],
+ ['사회복지사','업무역량','요양팀장','"가족 보호자와 소통할 때 어렵거나 갈등 상황이 생기면 어떻게 대처하시겠어요?"'],
+ ['사회복지사','조직협업','지점장','"다른 직종(요양보호사, 간호사 등)과 협업할 때 어떤 방식으로 소통하시나요?"'],
+ ['사회복지사','조직협업','지점장','"업무가 갑자기 늘어나거나 예상치 못한 상황이 생겼을 때 어떻게 대처하시나요?"'],
+ ['운전원','면접태도','지점장','"안녕하세요, 간단하게 자기소개 부탁드립니다."'],
+ ['운전원','면접태도','지점장','"이전 직장은 어떤 이유로 그만두셨나요? 지금 새로운 곳을 찾으시게 된 계기가 있으신가요?"'],
+ ['운전원','지원동기','복지팀장','"저희 기관에 지원하신 이유와, 이 일을 통해 이루고 싶은 것이 있다면 말씀해 주시겠어요?"'],
+ ['운전원','지원동기','복지팀장','"노인복지 분야에서 일하고 싶으신 특별한 이유가 있으신가요?"'],
+ ['운전원','업무역량','요양팀장','"어르신들을 모시고 운전할 때 가장 중요하게 생각하셔야 할 부분이 무엇이라고 생각하세요?"'],
+ ['운전원','업무역량','요양팀장','"차량 운행 중 어르신이 갑자기 불편하심을 호소하거나 긴급 상황이 생긴다면 어떻게 대처하시겠어요?"'],
+ ['운전원','조직협업','지점장','"운행 일정이 갑자기 바뀌거나 추가 업무가 생겼을 때 어떻게 대응하시나요?"'],
+ ['운전원','조직협업','지점장','"어르신이나 동료 직원과 불편한 상황이 생겼을 때 어떻게 해결하시나요?"'],
+ ['간호(조무)사','면접태도','지점장','"안녕하세요, 간단하게 자기소개 부탁드립니다."'],
+ ['간호(조무)사','면접태도','지점장','"이전 직장은 어떤 이유로 그만두셨나요? 지금 새로운 곳을 찾으시게 된 계기가 있으신가요?"'],
+ ['간호(조무)사','지원동기','복지팀장','"병원이나 다른 의료기관이 아닌 주간보호센터에 지원하신 이유가 있으신가요?"'],
+ ['간호(조무)사','지원동기','복지팀장','"저희 기관에 대해 미리 알아보고 오셨나요? 어떤 이미지로 느끼셨는지 말씀해 주시겠어요?"'],
+ ['간호(조무)사','업무역량','요양팀장','"어르신 건강 상태 모니터링 시 가장 중요하게 체크하시는 항목은 무엇인가요?"'],
+ ['간호(조무)사','업무역량','요양팀장','"어르신이 갑자기 낙상하거나 응급 상황이 발생했을 때 어떻게 대처하시겠어요?"'],
+ ['간호(조무)사','조직협업','지점장','"요양보호사나 사회복지사 등 다른 직종과 함께 일할 때 어떤 방식으로 협력하시나요?"'],
+ ['간호(조무)사','조직협업','지점장','"의료적 판단과 현장 상황이 충돌할 때 어떻게 결정하시나요?"'],
+ ['조리원','면접태도','지점장','"안녕하세요, 간단하게 자기소개 부탁드립니다."'],
+ ['조리원','면접태도','지점장','"이전 직장은 어떤 이유로 그만두셨나요? 지금 새로운 곳을 찾으시게 된 계기가 있으신가요?"'],
+ ['조리원','지원동기','복지팀장','"저희 기관에 지원하신 특별한 이유가 있으신가요?"'],
+ ['조리원','지원동기','복지팀장','"노인 급식 조리 경험이 있으신가요? 일반 조리와 어떤 점이 다르다고 생각하세요?"'],
+ ['조리원','업무역량','요양팀장','"어르신 중 연하 곤란(삼킴 장애)이 있으신 분을 위한 식사를 준비하신 경험이 있으신가요?"'],
+ ['조리원','업무역량','요양팀장','"식품위생과 관련해 평소 가장 중요하게 지키시는 원칙이 있다면 말씀해 주시겠어요?"'],
+ ['조리원','조직협업','지점장','"식단 변경이나 갑작스러운 인원 변동이 생겼을 때 어떻게 대처하시나요?"'],
+ ['조리원','조직협업','지점장','"주방에서 동료와 의견 충돌이 생겼을 때 어떻게 해결하시나요?"']
+];
+var MANUAL=[
+ ['📌 핵심 원칙','구체적이고 준비된 면접은 인재 밀도를 높여 기관에 도움이 되며, 좋은 팀을 구축하는 출발점입니다.'],
+ ['1️⃣ 채용공고(JD) 작성법',['채용공고는 명확하게, 직종에 필요한 업무·자격증을 정확히 기재.','우대사항 위주로 단순·명료하게, 필요 이상의 요구사항은 넣지 않기.','예시) 요양보호사 1명 / 주간보호 08:30~17:30 / 운전면허 필수 / 어르신 등원서비스 가능 / 케어(식사·화장실·프로그램·이동) 가능']],
+ ['2️⃣ 면접 팀 구성',['면접 팀은 반드시 구성 (지점장·요양팀장·복지팀장 등 1기관 3명 이내).','면접 30분 전, 방식과 사전 질문을 검토해 자연스럽게 진행.','준비된 면접을 통해 구성원도 채용된 자부심을 가질 수 있음.']],
+ ['3️⃣ 면접 진행 순서',['① 면접 예정자에게 일시·장소 문자 전송','② 면접자 대기 장소 안내','③ 장소 준비: 노트북·책상·독립 공간·일정 거리','④ 노트북 열고 진행, 면접기록지에 모든 의견 반드시 기록','⑤ 지점장이 시작 시 기관 소개·신원 확인','⑥ 2분 이내 자기소개 요청','⑦ 협업 태도 → 업무 역량 → 기타 순 질문','⑧ 최종 발언 기회 후 채용 발표 일정 안내']],
+ ['4️⃣ 면접 평가 회의',['면접 후 점수표에 기록하고 본인 의견 반드시 기재.','팀장 의견을 공유·존중하되, 최종 결정은 지점장이 하고 채용 이유를 명확히 설명.']],
+ ['5️⃣ 면접 점수 기준','4점 적극추천 · 3점 약간추천 · 2점 약간반대 · 1점 비추천'],
+ ['평가 4항목',['면접 태도: 적극·긍정 태도. 이전 직장 적개심·부정 감정 표출 시 낮게.','지원 동기: 회사 관심·취업 의지 확인.','업무 역량: 전문성·가치관. 경험으로 판단.','조직 협업: 성장 가능성·잠재력. 이전 직장 원망·적개심 표출 시 채용 원칙상 신중.']]
+];
+
+/* ================= 상태 ================= */
+var S={records:[]}, branch='', isAdmin=false, curTab='home', pending=null, myPw='', master='';
+function load(){S={records:[]};}
+function save(){}
+function loadRecords(){var body=isAdmin?{action:'iv_admin_list',master:master}:{action:'iv_list',branch:branch,pw:myPw};return centralPost(body).then(function(res){S.records=(res&&res.ok&&res.records)?res.records:[];});}
+function uid(){return 'r'+Date.now()+'_'+Math.random().toString(36).slice(2,8);}
+/* 실제 면접 데이터는 중앙DB(비공개 구글시트)에만 저장됩니다. 여기에 개인정보를 하드코딩하지 않습니다. */
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ================= 로그인 ================= */
+function initLogin(){
+ var sel=document.getElementById('loginBranch');sel.innerHTML=BRANCHES.map(function(b){return '<option>'+b+'</option>';}).join('');
+ var msg=document.getElementById('loginMsg');
+ function setMsg(t,c){if(msg){msg.style.color=c||'var(--danger)';msg.textContent=t;}}
+ function busy(on){document.getElementById('loginBtn').disabled=on;document.getElementById('loginAdmin').disabled=on;}
+ document.getElementById('loginBtn').onclick=function(){
+  var b=sel.value,pw=(document.getElementById('loginPw').value||'').trim();
+  if(!pw){setMsg('비밀번호를 입력하세요.');return;}
+  busy(true);setMsg('확인 중…','var(--ink3)');
+  centralPost({action:'iv_login',branch:b,pw:pw}).then(function(res){
+   if(res&&res.ok){branch=b;myPw=pw;isAdmin=false;loadRecords().then(function(){busy(false);enter();});}
+   else{busy(false);setMsg('비밀번호가 맞지 않아요. (근무관리표와 같은 비번)');}
+  }).catch(function(){busy(false);setMsg('연결 실패 — 인터넷을 확인하세요.');});
+ };
+ document.getElementById('loginAdmin').onclick=function(){
+  var pw=(document.getElementById('loginPw').value||'').trim();
+  if(!pw){setMsg('본부 비밀번호를 입력하세요.');return;}
+  busy(true);setMsg('확인 중…','var(--ink3)');
+  master=pw;isAdmin=true;
+  centralPost({action:'iv_admin_list',master:pw}).then(function(res){
+   if(res&&res.ok){branch='본부(관리자)';S.records=res.records||[];busy(false);enter();}
+   else{isAdmin=false;master='';busy(false);setMsg('본부 비밀번호가 맞지 않아요.');}
+  }).catch(function(){isAdmin=false;master='';busy(false);setMsg('연결 실패 — 인터넷을 확인하세요.');});
+ };
+}
+function enter(){
+ document.getElementById('login').classList.add('hide');
+ document.getElementById('app').classList.remove('hide');
+ document.getElementById('whoBranch').textContent=branch+(isAdmin?' · 전 지점 열람':'');
+ buildNav();go(isAdmin?'admin':'home');
+}
+document.getElementById('logoutBtn')?.addEventListener('click',function(){location.reload();});
+
+/* ================= 네비 ================= */
+function buildNav(){
+ var tabs=[['home','🏠 홈'],['manual','📖 매뉴얼'],['q','💬 질문'],['input','✍️ 면접 입력'],['mine','📋 우리 지점 기록'],['board','🤝 채용결과(전 지점)'],['persona','🧭 인재상']];
+ if(isAdmin)tabs=[['admin','🛠 본부 관리'],['board','🤝 채용결과(전 지점)'],['persona','🧭 인재상 비교'],['manual','📖 매뉴얼'],['q','💬 질문']];
+ document.getElementById('nav').innerHTML=tabs.map(function(t){return '<button data-t="'+t[0]+'">'+t[1]+'</button>';}).join('');
+ document.querySelectorAll('#nav button').forEach(function(b){b.onclick=function(){go(b.dataset.t);};});
+}
+function go(t){curTab=t;document.querySelectorAll('#nav button').forEach(function(b){b.classList.toggle('on',b.dataset.t===t);});
+ var v=document.getElementById('view');
+ if(t==='home')v.innerHTML=viewHome();
+ else if(t==='manual')v.innerHTML=viewManual();
+ else if(t==='q')renderQ(v);
+ else if(t==='input')renderInput(v);
+ else if(t==='mine')v.innerHTML=viewList(S.records.filter(function(r){return r.branch===branch;}),false);
+ else if(t==='board')renderBoard(v);
+ else if(t==='persona')renderPersona(v);
+ else if(t==='admin')renderAdmin(v);
+ window.scrollTo(0,0);
+}
+
+/* ================= 홈 ================= */
+function viewHome(){
+ var mine=S.records.filter(function(r){return r.branch===branch;});
+ var ok=mine.filter(function(r){return r.result==='합격';}).length;
+ var no=mine.filter(function(r){return r.result==='불합격';}).length;
+ var hold=mine.filter(function(r){return r.result==='보류';}).length;
+ var h='<div class="stat"><div class="s"><div class="n">'+mine.length+'</div><div class="l">우리 지점 면접</div></div>'+
+  '<div class="s"><div class="n" style="color:var(--duty)">'+ok+'</div><div class="l">합격</div></div>'+
+  '<div class="s"><div class="n" style="color:var(--danger)">'+no+'</div><div class="l">불합격</div></div>'+
+  '<div class="s"><div class="n" style="color:var(--warn)">'+hold+'</div><div class="l">보류</div></div></div>';
+ var tiles=[['input','✍️','면접 입력','새 면접 점수·의견 기록'],['q','💬','직종별 질문','면접 보면서 진행'],['mine','📋','우리 지점 기록','지난 면접 다시 보기'],['board','🤝','채용결과(전 지점)','아깝게 놓친 인재 찾기'],['manual','📖','면접 매뉴얼','진행 방법·점수 기준'],['persona','🧭','우리 지점 인재상','합격 패턴 요약']];
+ h+='<div class="tiles">'+tiles.map(function(t){return '<div class="tile" onclick="go(\''+t[0]+'\')"><div class="ic">'+t[1]+'</div><div class="t">'+t[2]+'</div><div class="d">'+t[3]+'</div></div>';}).join('')+'</div>';
+ return h;
+}
+
+/* ================= 매뉴얼 ================= */
+function viewManual(){
+ var h='<div class="card man"><h2>📖 면접 매뉴얼</h2>';
+ MANUAL.forEach(function(m){
+  h+='<h3>'+m[0]+'</h3>';
+  if(Array.isArray(m[1])){h+='<ul>';m[1].forEach(function(li){h+=(li.indexOf('예시')===0||li.indexOf('예)')===0)?'<div class="ex">'+esc(li)+'</div>':'<li>'+esc(li)+'</li>';});h+='</ul>';}
+  else h+='<p style="margin:2px 0">'+esc(m[1])+'</p>';
+ });
+ h+='</div>';return h;
+}
+
+/* ================= 질문 ================= */
+function renderQ(v){
+ v.innerHTML='<div class="card"><h2>💬 직종별 면접 질문</h2><p class="sub" style="margin-bottom:10px">직종을 고르면 그 직종 질문만 보여요. 면접 보면서 순서대로 물어보세요.</p>'+
+  '<label class="fld">직종 <select id="qJob"><option value="전체">전체</option>'+JOBS.map(function(j){return '<option>'+j+'</option>';}).join('')+'</select></label>'+
+  '<div id="qList" style="margin-top:12px"></div></div>';
+ function draw(){var job=document.getElementById('qJob').value;var list=QBANK.filter(function(q){return job==='전체'||q[0]===job;});
+  var el=document.getElementById('qList');
+  if(!list.length){el.innerHTML='<p class="sub">이 직종은 등록된 질문이 없어요. (기타는 자유 질문)</p>';return;}
+  var cur='';var h='';
+  list.forEach(function(q){if(q[0]!==cur){cur=q[0];h+='<h3 style="color:var(--primary-d);margin:14px 0 6px">'+q[0]+'</h3>';}
+   h+='<div class="qcard"><div class="meta"><span class="badge">'+q[1]+'</span><span>담당: '+q[2]+'</span></div>'+esc(q[3])+'</div>';});
+  el.innerHTML=h;}
+ document.getElementById('qJob').onchange=draw;draw();
+}
+
+/* ================= 면접 입력 ================= */
+function renderInput(v){
+ v.innerHTML='<div class="card"><h2>✍️ 면접 입력</h2><p class="sub" style="margin-bottom:12px">'+esc(branch)+' · 점수 기준: 4 적극추천 / 3 약간추천 / 2 약간반대 / 1 비추천</p>'+
+  '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
+   fld('면접일','<input id="f_date" type="date">')+
+   fld('지원자명','<input id="f_name" placeholder="이름">')+
+   fld('생년월일','<input id="f_birth" placeholder="예: 66.08.10">')+
+   fld('성별','<select id="f_gender"><option>여</option><option>남</option></select>')+
+   fld('연락처','<input id="f_phone" placeholder="010-0000-0000">')+
+   fld('직종','<select id="f_job">'+JOBS.map(function(j){return '<option>'+j+'</option>';}).join('')+'</select>')+
+  '</div>'+
+  '<h3 style="margin:16px 0 8px;font-size:15px">면접관별 점수·의견</h3>'+
+  evRow('e1','지점장','협업·태도')+evRow('e2','복지팀장','지원동기')+evRow('e3','요양팀장','업무역량')+
+  '<div style="display:flex;align-items:center;gap:12px;margin:12px 0;flex-wrap:wrap">'+
+   '<div style="font-weight:700">합계 <span id="f_total" style="font-size:20px;color:var(--primary-d)">0</span> / 12</div>'+
+   '<label class="fld">합격여부 <select id="f_result"><option value="">선택…</option><option>합격</option><option>불합격</option><option>보류</option></select></label>'+
+  '</div>'+
+  '<div id="f_msg" class="sub" style="margin:6px 0"></div>'+
+  '<button class="btn pri" id="f_save" style="width:100%;padding:12px;font-size:15px">저장하기</button>'+
+  '</div>';
+ ['e1','e2','e3'].forEach(function(k){document.getElementById(k+'_score').onchange=calcTotal;});
+ function calcTotal(){var t=['e1','e2','e3'].reduce(function(a,k){return a+(+document.getElementById(k+'_score').value||0);},0);document.getElementById('f_total').textContent=t;}
+ document.getElementById('f_save').onclick=trySave;
+}
+function fld(label,inner){return '<label class="fld">'+label+' '+inner+'</label>';}
+function evRow(k,role,tag){
+ return '<div class="evrow"><div class="role">'+role+'<div style="font-size:11px;font-weight:400;color:var(--ink3)">'+tag+'</div></div>'+
+  '<div style="display:flex;flex-direction:column;gap:6px"><input id="'+k+'_name" placeholder="면접관 이름"><textarea id="'+k+'_op" rows="2" placeholder="의견"></textarea></div>'+
+  '<select id="'+k+'_score"><option value="">점수</option><option>4</option><option>3</option><option>2</option><option>1</option></select></div>';
+}
+function readInput(){
+ function g(id){return (document.getElementById(id).value||'').trim();}
+ return {branch:branch,date:g('f_date'),name:g('f_name'),birth:g('f_birth'),gender:g('f_gender'),phone:g('f_phone'),job:g('f_job'),
+  e1:{name:g('e1_name'),score:g('e1_score'),op:g('e1_op')},e2:{name:g('e2_name'),score:g('e2_score'),op:g('e2_op')},e3:{name:g('e3_name'),score:g('e3_score'),op:g('e3_op')},
+  total:['e1','e2','e3'].reduce(function(a,k){return a+(+g(k+'_score')||0);},0),
+  reReco:false,recoNote:'',career:false,careerBranch:'',hq:'none'};
+}
+function trySave(){
+ var rec=readInput();var msg=document.getElementById('f_msg');
+ if(!rec.name){msg.style.color='var(--danger)';msg.textContent='지원자명을 입력해주세요.';return;}
+ var result=document.getElementById('f_result').value;
+ if(!result){msg.style.color='var(--danger)';msg.textContent='합격여부를 선택해주세요.';return;}
+ rec.result=result;pending=rec;
+ if(result==='불합격'){openReco();}
+ else if(result==='합격'){openCareer();}
+ else{commit(rec);}
+}
+function commit(rec){
+ rec.id=uid();rec.branch=branch;
+ var msg=document.getElementById('f_msg');if(msg){msg.style.color='var(--ink3)';msg.textContent='저장 중…';}
+ var btn=document.getElementById('f_save');if(btn)btn.disabled=true;
+ centralPost({action:'iv_save',branch:branch,pw:myPw,record:rec}).then(function(res){
+  if(btn)btn.disabled=false;
+  if(res&&res.ok){S.records.push(rec);if(msg){msg.style.color='var(--duty)';msg.textContent='✓ 저장했어요.'+(rec.hq==='pending'?' (본부 승인 대기)':'');}setTimeout(function(){go('mine');},700);}
+  else{if(msg){msg.style.color='var(--danger)';msg.textContent='저장 실패: '+((res&&res.error)||'권한/연결 확인');}}
+ }).catch(function(){if(btn)btn.disabled=false;if(msg){msg.style.color='var(--danger)';msg.textContent='연결 실패 — 인터넷 확인';}});
+}
+
+/* 불합격 → 재추천 모달 */
+function openReco(){document.getElementById('recoChk').checked=false;document.getElementById('recoNote').value='';openOv('recoOv');}
+document.getElementById('recoConfirm').onclick=function(){pending.reReco=document.getElementById('recoChk').checked;pending.recoNote=(document.getElementById('recoNote').value||'').trim();closeOv('recoOv');commit(pending);};
+document.getElementById('recoSkip').onclick=function(){pending.reReco=false;closeOv('recoOv');commit(pending);};
+
+/* 합격 → 근무이력 모달 */
+function openCareer(){document.getElementById('carBranchWrap').classList.add('hide');document.getElementById('carBranch').value='';pending.career=false;openOv('careerOv');}
+document.getElementById('carNo').onclick=function(){pending.career=false;document.getElementById('carBranchWrap').classList.add('hide');};
+document.getElementById('carYes').onclick=function(){pending.career=true;document.getElementById('carBranchWrap').classList.remove('hide');};
+document.getElementById('carConfirm').onclick=function(){
+ if(pending.career){pending.careerBranch=(document.getElementById('carBranch').value||'').trim();pending.hq='pending';}
+ else{pending.hq='none';}
+ closeOv('careerOv');commit(pending);
+};
+
+/* ================= 기록 목록 ================= */
+function viewList(list,showBranch){
+ if(!list.length)return '<div class="card"><p class="sub">아직 기록이 없어요. ✍️ 면접 입력에서 첫 면접을 기록해보세요.</p></div>';
+ var h='<div class="card"><h2>'+(showBranch?'전 지점 채용결과':'우리 지점 면접기록')+' <span class="sub">('+list.length+'건)</span></h2>'+
+  '<div class="twrap" style="margin-top:10px"><table><thead><tr>'+(showBranch?'<th>지점</th>':'')+'<th>면접일</th><th>지원자</th><th>직종</th><th>합계</th><th>결과</th><th>표시</th><th>연락처</th></tr></thead><tbody>';
+ list.slice().reverse().forEach(function(r){
+  h+='<tr class="'+(r.reReco?'reReco':'')+'">'+(showBranch?'<td>'+esc(r.branch)+'</td>':'')+
+   '<td>'+esc(r.date)+'</td><td><b>'+esc(r.name)+'</b><div class="sub" style="font-size:11px">'+esc(r.gender)+' · '+esc(r.birth)+'</div></td>'+
+   '<td>'+esc(r.job)+'</td><td style="text-align:center">'+esc(r.total)+'</td>'+
+   '<td>'+resultPill(r)+'</td>'+
+   '<td>'+(r.reReco?'<span class="pill p-gold">💛 재추천</span>':'')+(r.hq==='pending'?' <span class="pill p-hq">본부승인대기</span>':'')+(r.hq==='approved'?' <span class="pill p-hq">본부승인✓</span>':'')+'</td>'+
+   '<td>'+esc(r.phone)+'</td></tr>';
+ });
+ h+='</tbody></table></div></div>';return h;
+}
+function resultPill(r){return r.result==='합격'?'<span class="pill p-ok">합격</span>':r.result==='불합격'?'<span class="pill p-no">불합격</span>':'<span class="pill p-hold">보류</span>';}
+
+/* ================= 채용결과 (전 지점) ================= */
+function renderBoard(v){
+ v.innerHTML='<div class="card"><h2>🤝 채용결과 — 전 지점 공유</h2>'+
+  '<p class="sub" style="margin-bottom:10px">모든 주간보호 지점의 결과를 함께 봐요. <span class="pill p-gold">💛 재추천</span>은 한 지점서 아깝게 놓친 분 — 다른 지점에서 연락해보세요.</p>'+
+  '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">'+
+   '<button class="btn sm" data-f="all">전체</button><button class="btn sm" data-f="reReco">💛 재추천만</button><button class="btn sm" data-f="합격">합격만</button></div>'+
+  '<div id="boardList"></div></div>';
+ function draw(f){var list=S.records.slice();
+  if(f==='reReco')list=list.filter(function(r){return r.reReco;});
+  else if(f==='합격')list=list.filter(function(r){return r.result==='합격';});
+  document.getElementById('boardList').innerHTML=boardTable(list);
+ }
+ v.querySelectorAll('[data-f]').forEach(function(b){b.onclick=function(){v.querySelectorAll('[data-f]').forEach(function(x){x.classList.remove('pri');});b.classList.add('pri');draw(b.dataset.f);};});
+ v.querySelector('[data-f="all"]').classList.add('pri');draw('all');
+}
+function boardTable(list){
+ if(!list.length)return '<p class="sub">해당하는 결과가 없어요.</p>';
+ var h='<div class="twrap"><table><thead><tr><th>지점</th><th>면접일</th><th>지원자</th><th>직종</th><th>결과</th><th>표시</th><th>연락처</th><th>메모</th></tr></thead><tbody>';
+ list.slice().reverse().forEach(function(r){
+  h+='<tr class="'+(r.reReco?'reReco':'')+'"><td>'+esc(r.branch)+'</td><td>'+esc(r.date)+'</td><td><b>'+esc(r.name)+'</b></td><td>'+esc(r.job)+'</td>'+
+   '<td>'+resultPill(r)+'</td><td>'+(r.reReco?'<span class="pill p-gold">💛 재추천</span>':'')+(r.hq==='pending'?'<span class="pill p-hq">본부승인대기</span>':'')+'</td>'+
+   '<td>'+(r.reReco||r.result==='합격'?esc(r.phone):'<span class="sub">-</span>')+'</td><td class="sub">'+esc(r.recoNote||(r.career?'케어링 이력:'+r.careerBranch:''))+'</td></tr>';
+ });
+ h+='</tbody></table></div>';return h;
+}
+
+/* ================= 인재상 ================= */
+function personaStats(recs){
+ var pass=recs.filter(function(r){return r.result==='합격';});
+ var jobCount={};pass.forEach(function(r){jobCount[r.job]=(jobCount[r.job]||0)+1;});
+ var topJobs=Object.keys(jobCount).sort(function(a,b){return jobCount[b]-jobCount[a];}).map(function(j){return j+'('+jobCount[j]+')';});
+ var avg=pass.length?(pass.reduce(function(a,r){return a+(+r.total||0);},0)/pass.length):0;
+ var rate=recs.length?Math.round(pass.length/recs.length*100):0;
+ return {total:recs.length,pass:pass.length,rate:rate,avg:avg,topJobs:topJobs,kw:keywords(pass)};
+}
+function personaSentence(st,b){
+ if(!st.pass)return '아직 합격 사례가 없어 인재상을 요약하기 일러요.';
+ var s=esc(b)+'은(는) 주로 <b>'+esc((st.topJobs[0]||'').replace(/\(.*\)/,''))+'</b>를 채용하고, ';
+ if(st.kw.length)s+='합격자에게서 <b>'+st.kw.slice(0,3).map(function(k){return esc(k[0]);}).join(' · ')+'</b>을(를) 높이 봤어요.';
+ else s+='합격자 의견이 쌓이면 선호 특성이 더 또렷해져요.';
+ return s;
+}
+function renderPersona(v){
+ var scope=isAdmin?S.records:S.records.filter(function(r){return r.branch===branch;});
+ var title=isAdmin?'전 지점 인재상 비교':esc(branch)+' 인재상 요약';
+ if(!scope.length){v.innerHTML='<div class="card"><h2>🧭 '+title+'</h2><p class="sub">아직 데이터가 부족해요. 면접이 쌓이면 지점이 어떤 인재를 선호하는지 자동으로 요약해드려요.</p></div>';return;}
+ var branchesInScope=(isAdmin?BRANCHES:[branch]).filter(function(b){return scope.some(function(r){return r.branch===b;});});
+ var h='<div class="card"><h2>🧭 '+title+'</h2><p class="sub" style="margin-bottom:10px">합격자 기준 패턴이에요. 데이터가 쌓일수록 정확해지고, 월/분기 본부 회고에 쓰여요.</p>';
+ if(isAdmin&&branchesInScope.length>1){
+  h+='<div class="twrap" style="margin-bottom:12px"><table><thead><tr><th>지점</th><th>면접</th><th>합격</th><th>합격률</th><th>평균점수</th><th>주요 직종</th><th>선호 키워드</th></tr></thead><tbody>';
+  branchesInScope.forEach(function(b){var st=personaStats(scope.filter(function(r){return r.branch===b;}));
+   h+='<tr><td><b>'+esc(b)+'</b></td><td>'+st.total+'</td><td>'+st.pass+'</td><td>'+st.rate+'%</td><td>'+(st.pass?st.avg.toFixed(1):'-')+'</td>'+
+    '<td>'+esc(st.topJobs.join(', ')||'-')+'</td><td>'+(st.kw.length?st.kw.slice(0,3).map(function(k){return esc(k[0]);}).join(' · '):'-')+'</td></tr>';});
+  h+='</tbody></table></div>';
+ }
+ branchesInScope.forEach(function(b){
+  var recs=scope.filter(function(r){return r.branch===b;});var st=personaStats(recs);
+  h+='<div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px">'+
+   '<div style="font-weight:700;color:var(--primary-d)">'+esc(b)+' <span class="sub" style="font-weight:400">면접 '+st.total+' · 합격 '+st.pass+' · 합격률 '+st.rate+'%'+(st.pass?' · 평균 '+st.avg.toFixed(1)+'점':'')+'</span></div>'+
+   '<div class="sub" style="margin:6px 0">'+personaSentence(st,b)+'</div>';
+  if(st.pass){if(st.topJobs.length)h+='<div class="sub">채용 직종: '+esc(st.topJobs.join(', '))+'</div>';
+   if(st.kw.length)h+='<div class="sub" style="margin-top:2px">의견 키워드: '+st.kw.map(function(k){return '<span class="badge" style="margin-right:4px">'+esc(k[0])+' '+k[1]+'</span>';}).join('')+'</div>';}
+  h+='</div>';
+ });
+ v.innerHTML=h+'</div>';
+}
+function keywords(recs){
+ var words=['성실','책임','경력','경험','존중','밝','성품','화합','적극','의지','위생','봉사','친절','소통','협업','전문','자격','케어링 인재상','성실성','열정','꼼꼼','안전'];
+ var cnt={};recs.forEach(function(r){[r.e1,r.e2,r.e3].forEach(function(e){var t=(e&&e.op)||'';words.forEach(function(w){if(t.indexOf(w)>=0)cnt[w]=(cnt[w]||0)+1;});});});
+ return Object.keys(cnt).map(function(k){return [k,cnt[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,6);
+}
+
+/* ================= 본부 관리 ================= */
+function renderAdmin(v){
+ var pend=S.records.filter(function(r){return r.hq==='pending';});
+ var h='<div class="card"><h2>🛠 본부 관리</h2>'+
+  '<h3 style="margin:12px 0 6px;font-size:15px">⚠️ 케어링 근무이력자 — 승인 대기 ('+pend.length+')</h3>';
+ if(!pend.length)h+='<p class="sub">승인 대기 중인 채용이 없어요.</p>';
+ else{h+='<div class="twrap"><table><thead><tr><th>지점</th><th>지원자</th><th>직종</th><th>이전 케어링 지점</th><th>처리</th></tr></thead><tbody>';
+  pend.forEach(function(r){h+='<tr><td>'+esc(r.branch)+'</td><td><b>'+esc(r.name)+'</b></td><td>'+esc(r.job)+'</td><td>'+esc(r.careerBranch)+'</td>'+
+   '<td><button class="btn sm pri" onclick="hqApprove(\''+r.id+'\')">승인</button></td></tr>';});
+  h+='</tbody></table></div>';}
+ h+='<h3 style="margin:16px 0 6px;font-size:15px">📊 지점별 채용 현황</h3>';
+ h+='<div class="twrap"><table><thead><tr><th>지점</th><th>면접</th><th>합격</th><th>불합격</th><th>보류</th><th>💛재추천</th></tr></thead><tbody>';
+ BRANCHES.forEach(function(b){var rs=S.records.filter(function(r){return r.branch===b;});if(!rs.length)return;
+  h+='<tr><td>'+esc(b)+'</td><td>'+rs.length+'</td><td style="color:var(--duty)">'+rs.filter(function(r){return r.result==='합격';}).length+'</td>'+
+   '<td style="color:var(--danger)">'+rs.filter(function(r){return r.result==='불합격';}).length+'</td><td>'+rs.filter(function(r){return r.result==='보류';}).length+'</td>'+
+   '<td>'+rs.filter(function(r){return r.reReco;}).length+'</td></tr>';});
+ h+='</tbody></table></div></div>';
+ v.innerHTML=h;
+}
+function hqApprove(id){var r=S.records.filter(function(x){return x.id===id;})[0];if(!r)return;
+ centralPost({action:'iv_hq',master:master,id:id,hq:'approved'}).then(function(res){if(res&&res.ok){r.hq='approved';go('admin');}else alert('승인 실패: '+((res&&res.error)||''));}).catch(function(){alert('연결 실패');});}
+
+/* ================= 모달 유틸 ================= */
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+
+/* ================= 시작 ================= */
+load();initLogin();
+</script>
+</body>
+</html>
