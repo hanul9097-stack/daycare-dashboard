@@ -1703,15 +1703,20 @@
  function slackAddAnnual_(n,key){if(!S.annual[n])S.annual[n]=[];if(S.annual[n].indexOf(key)<0)S.annual[n].push(key);if(S.fixed[n])S.fixed[n]=S.fixed[n].filter(function(x){return x!==key;});if(S.fixedAuto[n])S.fixedAuto[n]=S.fixedAuto[n].filter(function(x){return x!==key;});if(S.special[n])delete S.special[n][key];if(S.halfAM[n])S.halfAM[n]=S.halfAM[n].filter(function(x){return x!==key;});if(S.halfPM[n])S.halfPM[n]=S.halfPM[n].filter(function(x){return x!==key;});}
  function slackAddSpecial_(n,key,reason){if(!S.special[n])S.special[n]={};S.special[n][key]=reason||'기타';if(S.fixed[n])S.fixed[n]=S.fixed[n].filter(function(x){return x!==key;});if(S.fixedAuto[n])S.fixedAuto[n]=S.fixedAuto[n].filter(function(x){return x!==key;});if(S.annual[n])S.annual[n]=S.annual[n].filter(function(x){return x!==key;});}
  function applySlackInbox(){
-  var inb=S.slackInbox;if(!inb||!inb.month)return;var mm=inb.month,cnt=0;
-  (inb.items||[]).forEach(function(it){var n=it.name;
+  var inb=S.slackInbox;if(!inb||!inb.month)return;var mm=inb.month;
+  if(!adminViewMode&&Array.isArray(S.lockedMonths)&&S.lockedMonths.indexOf(mm)>=0){alert('⚠ '+((+mm.slice(5,7))+'월')+'은 본부 확정본으로 잠겨 있어 반영할 수 없어요.\n본부에 잠금 해제를 요청한 뒤 다시 눌러주세요.');return;}
+  var rosterSet={};Object.keys(S.roster||{}).forEach(function(g){(S.roster[g]||[]).forEach(function(n){rosterSet[n]=1;});});
+  var cnt=0,skipped=[];
+  (inb.items||[]).forEach(function(it){var n=it.name;if(!rosterSet[n]){skipped.push(n);return;}
    (it.ji||[]).forEach(function(d){slackAddFixed_(n,mm+'-'+('0'+d).slice(-2));cnt++;});
    (it.ann||[]).forEach(function(d){slackAddAnnual_(n,mm+'-'+('0'+d).slice(-2));cnt++;});
    (it.etc||[]).forEach(function(e){slackAddSpecial_(n,mm+'-'+('0'+e.d).slice(-2),e.reason);cnt++;});
   });
-  delete S.slackInbox;S.month=mm;save();
+  var clearTs=inb.ts;delete S.slackInbox;S.month=mm;
+  try{localStorage.setItem(stateKey(branch),JSON.stringify(S));}catch(e){}
+  if(inCentral(branch)){var pw=getPw(branch);if(pw){setSync('save');centralPost({action:'save',branch:branch,pw:pw,data:JSON.stringify(S),clearInboxTs:clearTs}).then(function(res){setSync(res&&res.ok?'ok':'off');}).catch(function(){setSync('off');});}}
   closeModal('slackModal');renderSlackBanner();refreshAll();if(typeof showPage==='function')showPage(3);
-  alert('✓ '+((+mm.slice(5,7))+'월')+' 휴무 '+cnt+'건을 휴무표에 반영했어요. 3번 탭에서 확인하세요.');
+  alert('✓ '+((+mm.slice(5,7))+'월')+' 휴무 '+cnt+'건을 휴무표에 반영했어요.'+(skipped.length?'\n(명단에 없어 제외: '+skipped.join(', ')+')':'')+'\n3번 탭에서 확인하세요.');
  }
  function noOverlapHtml(){
   if(!S.noOverlapGroups||!S.noOverlapGroups.length)return '';
