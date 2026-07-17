@@ -722,7 +722,7 @@
     <li><b>v6.2 새 화면</b> — 세로 7탭 재구성, 첫 화면 지점 클릭 로그인(처음 비번 0000)·최초 로그인 비번 변경, 📤 월 근무표 본부보고(슬랙), 점검→조치(급여보상·대체휴무·맞교대), 장기요양 고시 근무일수</li>
     <li><b>v6.3 생활실 업무 분장표(7번 탭)</b> — 날짜별 층/구역별 근무자 자동 + 시간×구역 표에 프로그램·담당 배정 + 텍스트 복사(밴드·카톡)·인쇄, 지점별 템플릿(구역·업무 항목) 편집</li>
    </ol>
-   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v7.5</div>
+   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v7.7</div>
   </details>
  </footer>
 </div>
@@ -853,7 +853,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='7.5';
+ const APP_VERSION='7.7';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -1061,11 +1061,13 @@
   const p=S.month.split('-');const y=+p[0],m=+p[1]-1;
   const days=new Date(y,m+1,0).getDate();
   const Nfix=S.fixedCount||0, Ngreet=S.greetMin||0;
-  S.force={};
-  // 수동 입력 지정휴일은 유지하고, 이전 자동 배치분만 제거
+  // 이 달 것만 초기화 — 다른 달(지난달 확정본 등) 배정은 건드리지 않는다
+  if(!S.force||typeof S.force!=='object')S.force={};
+  Object.keys(S.force).forEach(key=>{if(String(key).indexOf(S.month)===0)delete S.force[key];});
+  // 수동 입력 지정휴일은 유지하고, 이 달 자동 배치분만 제거
   if(!S.fixedAuto||typeof S.fixedAuto!=='object')S.fixedAuto={};
-  Object.keys(S.fixed).forEach(n=>{const auto=S.fixedAuto[n]||[];S.fixed[n]=(S.fixed[n]||[]).filter(key=>auto.indexOf(key)<0);if(!S.fixed[n].length)delete S.fixed[n];});
-  S.fixedAuto={};
+  Object.keys(S.fixed).forEach(n=>{const auto=(S.fixedAuto[n]||[]).filter(key=>String(key).indexOf(S.month)===0);S.fixed[n]=(S.fixed[n]||[]).filter(key=>auto.indexOf(key)<0);if(!S.fixed[n].length)delete S.fixed[n];});
+  Object.keys(S.fixedAuto).forEach(n=>{S.fixedAuto[n]=(S.fixedAuto[n]||[]).filter(key=>String(key).indexOf(S.month)!==0);if(!S.fixedAuto[n].length)delete S.fixedAuto[n];});
   // 1) 지정휴일 N개를 균등 배치 — 토요당번 직종 제외, 수동 입력분은 개수에 포함
   const opDays=[],wdOpDays=[],sats=[];for(let d=1;d<=days;d++){const dow=new Date(y,m,d).getDay();if(dow===0||S.events.includes(k(y,m,d)))continue;opDays.push(d);if(dow===6)sats.push(d);else wdOpDays.push(d);}
   const satRotTeams=['돌봄요양팀','간호요양팀'].concat(S.satGroups).filter((t,i,a)=>S.roster[t]&&a.indexOf(t)===i);
@@ -1104,7 +1106,7 @@
    const restWk={};(S.fixed[person]||[]).forEach(key=>{if(key.indexOf(S.month)===0)restWk[weekOf(+key.slice(8))]=(restWk[weekOf(+key.slice(8))]||0)+1;});
    const byWeek={};pool.forEach(d=>{if(validDay(d))(byWeek[weekOf(d)]=byWeek[weekOf(d)]||[]).push(d);});
    const weeks=Object.keys(byWeek).map(Number).sort((a,b)=>a-b);
-   let cur=(S.fixed[person]||[]).length;
+   let cur=(S.fixed[person]||[]).filter(key=>String(key).indexOf(S.month)===0).length;
    const place=w=>{const cand=(byWeek[w]||[]).filter(validDay);if(!cand.length)return false;cand.sort((a,b)=>teamCmp(tm,a,b)||(Math.random()-0.5));const d=cand[0],key=k(y,m,d);(S.fixed[person]=S.fixed[person]||[]).push(key);(S.fixedAuto[person]=S.fixedAuto[person]||[]).push(key);bumpOff(tm,d);restWk[w]=(restWk[w]||0)+1;return true;};
    weeks.forEach(w=>{if(cur<target&&(restWk[w]||0)===0&&place(w))cur++;});
    var guard=0;while(cur<target&&guard++<80){const avail=weeks.filter(w=>(byWeek[w]||[]).filter(validDay).length>0);if(!avail.length)break;avail.sort((a,b)=>(restWk[a]||0)-(restWk[b]||0));if(place(avail[0]))cur++;else break;}
@@ -1487,6 +1489,9 @@
  function refreshReqUI(){fillSelect('annualWho');fillSelect('specialWho');fillSelect('payWho');fillSelect('joinWho');fillSelect('exWho');fillSelect('greetWho');renderFixedGreetList();renderAnnualList();renderSpecialList();renderPayDays();renderPayList();renderJoinList();renderExemptList();renderReqTable();}
  function dayListToKeys(str){const out=[];(str||'').split(/[^0-9]+/).forEach(function(t){t=t.trim();if(!t)return;const dnum=parseInt(t,10);if(isNaN(dnum)||dnum<1||dnum>31)return;const key=S.month+'-'+String(dnum).padStart(2,'0');if(out.indexOf(key)<0)out.push(key);});return out;}
  function keysToDayList(arr){return (arr||[]).filter(function(d){return d.indexOf(S.month)===0;}).map(function(d){return parseInt(d.slice(8),10);}).filter(function(v){return !isNaN(v);}).sort(function(a,b){return a-b;}).join(',');}
+ // 이 달 것만 추리기 — 집계·판정은 반드시 기준 월(S.month)로 한정한다
+ function inMon_(arr){return (arr||[]).filter(function(d){return String(d).indexOf(S.month)===0;});}
+ function inMonObj_(o){return Object.keys(o||{}).filter(function(d){return String(d).indexOf(S.month)===0;});}
  function navCell(e){
   if(e.key!=='ArrowDown'&&e.key!=='ArrowUp'&&e.key!=='Enter')return;
   const inp=e.target,cls=inp.className;e.preventDefault();
@@ -1552,7 +1557,7 @@
   const el=document.getElementById('genSummary');if(!el)return;
   const total=allNames().length;
   const carCount=S.cars.length;
-  const annualNames=Object.keys(S.annual).filter(n=>S.annual[n]&&S.annual[n].length);
+  const annualNames=Object.keys(S.annual).filter(n=>inMon_(S.annual[n]).length);
   const fixedNames=Object.keys(S.fixed).filter(n=>S.fixed[n]&&S.fixed[n].length);
   const satGrps=S.satGroups.join('·')||'없음';
   const items=[
@@ -1573,7 +1578,7 @@
   var TEAMCLS={'행정팀':'t-adm','돌봄요양팀':'t-care','간호요양팀':'t-nur','조리팀':'t-cook','운전원':'t-drv'};
   function teamOf(n){for(var t in S.roster){if((S.roster[t]||[]).indexOf(n)>=0)return t;}return '';}
   var totAnn=0,totPay=0;
-  names.forEach(function(n){totAnn+=(S.annual[n]||[]).length;totPay+=(S.payComp[n]||[]).length;});
+  names.forEach(function(n){totAnn+=inMon_(S.annual[n]).length;totPay+=inMon_(S.payComp[n]).length;});
   var mp=(S.month||'').split('-');
   var h='<div class="card"><h2>현황·통계 <span class="sub" style="font-weight:400">— '+(mp[0]||'')+'년 '+(mp[1]||'')+'월 · 자동 집계</span></h2>'+
    '<div class="metrics">'+
@@ -1587,7 +1592,7 @@
   if(!names.length){h+='<p class="sub" style="margin:0">직원을 먼저 등록하세요.</p>';}
   else{
    h+='<div style="overflow:auto"><table class="rqt" style="width:100%"><thead><tr><th>직원</th><th>팀</th><th>지정휴일</th><th>연차</th><th>휴일·교육</th><th>급여보상</th></tr></thead><tbody>';
-   names.forEach(function(n){var t=teamOf(n),cls=TEAMCLS[t]||'';var fx=(S.fixed[n]||[]).length,an=(S.annual[n]||[]).length,sp=Object.keys(S.special[n]||{}).length,pa=(S.payComp[n]||[]).length;
+   names.forEach(function(n){var t=teamOf(n),cls=TEAMCLS[t]||'';var fx=inMon_(S.fixed[n]).length,an=inMon_(S.annual[n]).length,sp=inMonObj_(S.special[n]).length,pa=inMon_(S.payComp[n]).length;
     h+='<tr><td class="rnm">'+n+'</td><td>'+(t?'<span class="tc '+cls+'">'+t+'</span>':'')+'</td><td>'+fx+'</td><td>'+an+'</td><td>'+sp+'</td><td>'+(pa?'<b style="color:var(--danger)">'+pa+'</b>':'0')+'</td></tr>';});
    h+='</tbody></table></div>';
   }
@@ -1620,7 +1625,7 @@
      '· 반/층: '+((S.classes||[]).length?S.classes.join(' · '):'미설정')+'</div></div>';
   var gc=curDate(),g2=gositCalc(gc.getFullYear(),gc.getMonth()),rep=compReport(gc.getFullYear(),gc.getMonth());
   var gRows='',gFail=0;
-  rep.rows.forEach(function(r){var ann=(S.annual[r.name]||[]).length,sp=Object.keys(S.special[r.name]||{}).length,rec=r.worked+ann+sp,actual=rec*8,byStd=actual>=g2.hours,bySpec=(rec>=15&&actual>=160),ok=byStd||bySpec;if(!ok)gFail++;var judge=byStd?'✅ 충족':(bySpec?'✅ 충족(특례)':'⚠ 미달 '+(actual-g2.hours)+'h');gRows+='<tr><td class="rnm">'+r.name+'</td><td>'+r.worked+'</td><td>'+(ann+sp)+'</td><td>'+rec+'일 · '+actual+'h</td><td>'+g2.hours+'h</td><td style="font-weight:700;color:'+(ok?'var(--duty)':'var(--danger)')+'">'+judge+'</td></tr>';});
+  rep.rows.forEach(function(r){var ann=inMon_(S.annual[r.name]).length,sp=inMonObj_(S.special[r.name]).length,rec=r.worked+ann+sp,actual=rec*8,byStd=actual>=g2.hours,bySpec=(rec>=15&&actual>=160),ok=byStd||bySpec;if(!ok)gFail++;var judge=byStd?'✅ 충족':(bySpec?'✅ 충족(특례)':'⚠ 미달 '+(actual-g2.hours)+'h');gRows+='<tr><td class="rnm">'+r.name+'</td><td>'+r.worked+'</td><td>'+(ann+sp)+'</td><td>'+rec+'일 · '+actual+'h</td><td>'+g2.hours+'h</td><td style="font-weight:700;color:'+(ok?'var(--duty)':'var(--danger)')+'">'+judge+'</td></tr>';});
   h+='<details class="card" style="padding:0"'+(gFail>0?' open':'')+'><summary style="cursor:pointer;padding:12px 14px;font-weight:600;font-size:15px;list-style:none">🏛️ 장기요양 고시 · 월 기준 근무시간 판정 <span style="font-weight:400;font-size:12px;color:var(--tx3)">— 기준 '+g2.hours+'h</span> '+(rep.rows.length?(gFail>0?'<span class="badge-need">미달 '+gFail+'명</span>':'<span style="font-size:12px;color:var(--duty);font-weight:600">전원 충족 ✅</span>'):'')+' <span style="font-size:11px;color:var(--tx3)">▾ 펼치기</span></summary><div style="padding:0 14px 14px">';
   h+='<p class="sub" style="margin:0 0 6px">근무가능일수 = 전체 '+g2.days+' − 토 '+g2.sat+' − 일 '+g2.sun+' − 공휴일 '+g2.hol+' = <b>'+g2.workable+'일</b>. <b>1일 8시간 = 09:00~18:00</b>(점심 1시간 휴게 포함) · <b>연차·교육·병가는 근로시간으로 인정</b>(고시) → 인정근무 = (근무일 + 연차·교육·병가) × 8h. <b>1시간이라도 미달 시 인력배치기준 위반 위험</b>(환수·가산배제).</p>';
   if(!rep.rows.length){h+='<p class="sub" style="margin:0">스케줄 생성 후 표시됩니다.</p>';}
@@ -1639,7 +1644,7 @@
   var worked={};allNames().forEach(function(n){worked[n]=0;});
   for(var d3=1;d3<=days;d3++){if(new Date(y,m,d3).getDay()===0)continue;var cd3=computeDay(y,m,d3);cd3.working.forEach(function(n){if(n in worked)worked[n]++;});}
   // 편차는 '자동휴일 분배'의 공평성만 봄 → 본인이 신청한 연차·특별휴가는 근무일에 되돌려 계산(반차는 이미 근무로 집계됨)
-  var lvAdj=function(n){return worked[n]+((S.annual[n]||[]).length)+Object.keys(S.special[n]||{}).length;};
+  var lvAdj=function(n){return worked[n]+inMon_(S.annual[n]).length+inMonObj_(S.special[n]).length;};
   ['행정팀','돌봄요양팀','간호요양팀','조리팀','운전원'].forEach(function(t){var mem=(S.roster[t]||[]).filter(function(n){return !isPT(n);});if(mem.length<2)return;var ws=mem.map(function(n){return {n:n,w:lvAdj(n)};}).sort(function(a,c){return c.w-a.w;});var hi=ws[0],lo=ws[ws.length-1];if(hi.w-lo.w>=2)issues.push({level:'info',cat:'balance',team:t,high:hi.n,low:lo.n,hi:hi.w,lo:lo.w,title:t+' 근무일수 편차 '+(hi.w-lo.w)+'일 (연차 제외 · '+hi.n+' '+hi.w+'일 · '+lo.n+' '+lo.w+'일)'});});
   return issues;}
  function chkFix(is){var b='<div class="sub" style="font-size:11px;color:var(--tx3);margin:0 0 6px">조치 방법 — 그날 쉬는 사람을 눌러 바로 넣으세요</div>';var c=curDate(),y=c.getFullYear(),mo=c.getMonth();
