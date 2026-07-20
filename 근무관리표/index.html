@@ -741,7 +741,7 @@
     <li><b>v6.2 새 화면</b> — 세로 7탭 재구성, 첫 화면 지점 클릭 로그인(처음 비번 0000)·최초 로그인 비번 변경, 📤 월 근무표 본부보고(슬랙), 점검→조치(급여보상·대체휴무·맞교대), 장기요양 고시 근무일수</li>
     <li><b>v6.3 생활실 업무 분장표(7번 탭)</b> — 날짜별 층/구역별 근무자 자동 + 시간×구역 표에 프로그램·담당 배정 + 텍스트 복사(밴드·카톡)·인쇄, 지점별 템플릿(구역·업무 항목) 편집</li>
    </ol>
-   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v8.2</div>
+   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v8.3</div>
   </details>
  </footer>
 </div>
@@ -874,7 +874,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='8.2';
+ const APP_VERSION='8.3';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -1793,7 +1793,15 @@
   var hasShort=issues.some(function(x){return x.cat==='minteam'||x.cat==='greet';});
   var h='<div class="card" style="border:1px solid var(--danger);padding:12px 14px"><div style="font-weight:600;color:var(--danger);display:flex;align-items:center;gap:7px;margin-bottom:9px">🔎 점검 결과 <span class="badge-need">조치 필요 '+issues.length+'건</span></div>';
   if(hasShort)h+='<div class="sub" style="margin:0 0 10px;padding:8px 10px;border-radius:8px;background:var(--info-bg);border:1px solid var(--info);line-height:1.6">⚖️ <b>직원 법정 휴무를 우선</b>해 휴무는 그대로 두고, 최소 인원이 못 채워진 날만 아래에 알려드려요. 이대로 <b>수용</b>하셔도 되고, 기관 운영상 근무가 꼭 필요한 날은 항목을 눌러 <b>급여보상(휴일근로수당) 근무</b> 또는 <b>대체휴무</b>로 직접 추가하세요.</div>';
-  issues.forEach(function(is,ix){var sev=is.level==='danger'?'var(--danger)':'var(--fixed)';var dlab=is.cat==='balance'?'공평성':(is.d+'일('+dn[is.dow]+')');h+='<div class="acc"><div class="accbar" style="padding:9px 11px"><span class="cv">▶</span><span style="color:'+sev+';font-weight:600;font-size:13px">'+dlab+'</span><span style="font-size:13px;flex:1">'+is.title+'</span></div><div class="accbody">'+chkFix(is)+'</div></div>';});
+  var chkItem=function(is){var sev=is.level==='danger'?'var(--danger)':'var(--fixed)';var dlab=is.cat==='balance'?(is.team||'공평성'):(is.d+'일('+dn[is.dow]+')');return '<div class="acc"><div class="accbar" style="padding:9px 11px"><span class="cv">▶</span><span style="color:'+sev+';font-weight:600;font-size:13px;min-width:66px">'+dlab+'</span><span style="font-size:13px;flex:1">'+is.title+'</span></div><div class="accbody">'+chkFix(is)+'</div></div>';};
+  var GRP=[{cat:'minteam',icon:'👥',name:'팀 인원 부족'},{cat:'greet',icon:'👋',name:'맞이 부족'},{cat:'car',icon:'🚗',name:'차량 공백 (정·부 전원 휴무)'},{cat:'balance',icon:'⚖️',name:'근무일수 공평성'}];
+  var known={};GRP.forEach(function(g){known[g.cat]=1;});
+  GRP.forEach(function(grp){var items=issues.filter(function(x){return x.cat===grp.cat;});if(!items.length)return;
+   var gsev=items.some(function(x){return x.level==='danger';})?'var(--danger)':(grp.cat==='balance'?'var(--tx3)':'var(--fixed)');
+   var daylist=grp.cat==='balance'?'':(' — '+items.map(function(x){return x.d+'일';}).join(', '));
+   h+='<div style="margin:12px 0 5px;font-weight:700;font-size:13.5px;color:'+gsev+'">'+grp.icon+' '+grp.name+' <span style="font-weight:600;color:var(--tx3)">('+items.length+'건'+daylist+')</span></div>';
+   items.forEach(function(is){h+=chkItem(is);});});
+  issues.filter(function(x){return !known[x.cat];}).forEach(function(is){h+=chkItem(is);});
   h+='</div>';h+=holidayPayHtml();h+=noOverlapHtml();el.innerHTML=h;
   el.querySelectorAll('.accbar').forEach(function(b){b.onclick=function(){b.parentElement.classList.toggle('open');};});
   el.querySelectorAll('[data-fix]').forEach(function(b){b.onclick=function(e){e.stopPropagation();var a=b.getAttribute('data-fix');if(a==='pay'){refreshReqUI();openModal('payModal');}else if(a==='req')showPage(3);else if(a==='car')showPage(4);else if(a==='cal')switchView5('rest');};});
