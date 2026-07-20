@@ -670,6 +670,7 @@
     <div class="row noprint">
      <button class="btn on" id="finalViewCal">달력형</button>
      <button class="btn" id="finalViewMx">개인표</button>
+     <button class="btn" id="finalCalPrint" title="달력형 휴무표를 A4 가로 한 장으로 인쇄">🖨 달력 인쇄</button>
      <span id="finalMsg" class="sub" style="margin:0;color:var(--duty);font-weight:500"></span>
     </div>
    </div>
@@ -738,7 +739,7 @@
     <li><b>v6.2 새 화면</b> — 세로 7탭 재구성, 첫 화면 지점 클릭 로그인(처음 비번 0000)·최초 로그인 비번 변경, 📤 월 근무표 본부보고(슬랙), 점검→조치(급여보상·대체휴무·맞교대), 장기요양 고시 근무일수</li>
     <li><b>v6.3 생활실 업무 분장표(7번 탭)</b> — 날짜별 층/구역별 근무자 자동 + 시간×구역 표에 프로그램·담당 배정 + 텍스트 복사(밴드·카톡)·인쇄, 지점별 템플릿(구역·업무 항목) 편집</li>
    </ol>
-   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v8.0</div>
+   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v8.1</div>
   </details>
  </footer>
 </div>
@@ -871,7 +872,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='8.0';
+ const APP_VERSION='8.1';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -2041,6 +2042,42 @@
   document.getElementById('finalViewCal').classList.toggle('on',finalView==='cal');
   document.getElementById('finalViewMx').classList.toggle('on',finalView==='mx');
  }
+ function calPrintCell_(y,m,d,DN){
+  var key=k(y,m,d),dow=new Date(y,m,d).getDay(),hol=HOL[key];
+  var cls=dow===0?'sun':(dow===6?'sat':''),dcls=(dow===0||hol)?'red':(dow===6?'blue':'');
+  var h='<td class="'+cls+'"><div class="dnum '+dcls+'">'+d+'<span class="dw">'+DN[dow]+'</span>';
+  if(dow===0)return h+'</div><div class="off gray">미운영</div></td>';
+  var cd=computeDay(y,m,d),off=cd.off;
+  var A=off.filter(function(n){return (S.annual[n]||[]).includes(key);});
+  var Sp=off.filter(function(n){return S.special[n]&&(key in S.special[n]);});
+  var F=off.filter(function(n){return A.indexOf(n)<0&&Sp.indexOf(n)<0;});
+  if(off.length)h+='<span class="cnt">휴 '+off.length+'</span>';
+  if(hol)h+='<div class="hol">■ '+lesc(hol)+'</div>';
+  h+='</div>';
+  if(F.length)h+='<div class="grp"><span class="tag hu">휴</span>'+F.sort(koCmp).map(lesc).join('&nbsp;')+'</div>';
+  if(A.length)h+='<div class="grp"><span class="tag yun">연</span>'+A.sort(koCmp).map(lesc).join('&nbsp;')+'</div>';
+  if(Sp.length)h+='<div class="grp"><span class="tag teuk">특</span>'+Sp.sort(koCmp).map(lesc).join('&nbsp;')+'</div>';
+  return h+'</td>';
+ }
+ function finalCalPrint(){
+  var c=curDate(),y=c.getFullYear(),m=c.getMonth(),days=new Date(y,m+1,0).getDate(),first=new Date(y,m,1).getDay();
+  var DN=['일','월','화','수','목','금','토'],cells=[];
+  for(var i=0;i<first;i++)cells.push('<td class="empty"></td>');
+  for(var d=1;d<=days;d++)cells.push(calPrintCell_(y,m,d,DN));
+  while(cells.length%7)cells.push('<td class="empty"></td>');
+  var rows='';for(var j=0;j<cells.length;j+=7)rows+='<tr>'+cells.slice(j,j+7).join('')+'</tr>';
+  var rowH=(cells.length/7<=5?'3.15cm':'2.62cm');
+  var now=new Date(),stamp=now.getFullYear()+'.'+('0'+(now.getMonth()+1)).slice(-2)+'.'+('0'+now.getDate()).slice(-2);
+  var css="@page{size:A4 landscape;margin:8mm;}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}body{font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',sans-serif;margin:0;color:#1f2430;background:#fff;}.wrap{max-width:277mm;margin:0 auto;}.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #2b3345;padding-bottom:6px;margin-bottom:7px;}.hd .t{font-size:23px;font-weight:800;letter-spacing:-.6px;}.hd .t b{color:#2f5fa8;}.hd .t small{font-size:13px;font-weight:600;color:#7a8194;margin-left:8px;}.hd .meta{font-size:10.5px;color:#98a0b0;text-align:right;line-height:1.5;}.legend{font-size:10px;color:#5b6270;margin:0 0 6px;display:flex;gap:10px;align-items:center;}table.cal{width:100%;border-collapse:collapse;table-layout:fixed;}.cal th{background:#2b3345;color:#fff;font-size:12px;font-weight:700;padding:5px 0;border:1px solid #2b3345;}.cal th.sun{background:#9d2b40;}.cal th.sat{background:#2f5fa8;}.cal td{border:1px solid #ccd0d9;height:"+rowH+";vertical-align:top;padding:3px 4px 4px;overflow:hidden;}.cal td.sun{background:#faf4f5;}.cal td.sat{background:#f4f7fb;}.cal td.empty{background:#f8f9fb;border-color:#e4e7ec;}.dnum{font-size:12.5px;font-weight:800;position:relative;line-height:1.1;margin-bottom:1px;}.dnum .dw{font-size:9px;font-weight:600;color:#98a0b0;margin-left:2px;}.dnum.red{color:#9d2b40;}.dnum.blue{color:#2f5fa8;}.cnt{position:absolute;right:0;top:1px;font-size:8.5px;color:#aeb4c0;font-weight:700;}.hol{font-size:8.6px;color:#9d2b40;font-weight:700;margin-top:1px;}.off.gray{font-size:9px;color:#c2c7d0;margin-top:4px;}.grp{font-size:9.4px;line-height:1.4;margin-top:2px;color:#2a2f3a;}.tag{display:inline-block;font-weight:800;font-size:8.6px;padding:0 3px;border-radius:2px;margin-right:3px;vertical-align:1px;}.tag.hu{background:#dce9fd;color:#1d4ed8;}.tag.yun{background:#fbe1ec;color:#9d174d;}.tag.teuk{background:#d3f3e6;color:#0b7a52;}.foot{margin-top:6px;font-size:9px;color:#98a0b0;text-align:right;}";
+  var doc='<!doctype html><html><head><meta charset="utf-8"><title>'+lesc(branch)+' '+(m+1)+'월 휴무 일정표</title><style>'+css+'</style></head><body><div class="wrap">'
+   +'<div class="hd"><div class="t"><b>'+lesc(branch)+'</b> '+y+'년 '+(m+1)+'월 휴무 일정표 <small>(일요일 미운영)</small></div>'
+   +'<div class="meta">출력일 '+stamp+'<br>휴=지정휴무 · 연=연차 · 특=특별휴무</div></div>'
+   +'<div class="legend"><span class="tag hu">휴</span>지정휴무<span class="tag yun">연</span>연차<span class="tag teuk">특</span>특별휴무 · <span style="color:#9d2b40">■</span> 공휴일 · 회색=일요일 미운영</div>'
+   +'<table class="cal"><thead><tr>'+DN.map(function(dw,i){return '<th class="'+(i===0?'sun':(i===6?'sat':''))+'">'+dw+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table>'
+   +'<div class="foot">케어링 호남본부 · 근무/휴무 자동생성 프로그램</div></div></body></html>';
+  var w=window.open('','_blank');if(!w){alert('팝업이 차단됐어요. 브라우저 팝업 허용 후 다시 눌러주세요.');return;}
+  w.document.write(doc);w.document.close();w.focus();setTimeout(function(){try{w.print();}catch(e){}},450);
+ }
  function renderFinalCal(){
   const c=curDate(),y=c.getFullYear(),m=c.getMonth();
   const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
@@ -2137,6 +2174,7 @@
  (function(){var aa=document.getElementById('annualAdd');if(aa)aa.onclick=addAnnualReq;var sa=document.getElementById('specialAdd');if(sa)sa.onclick=addSpecialReq;})();
  document.getElementById('finalViewCal').onclick=()=>setFinalView('cal');
  document.getElementById('finalViewMx').onclick=()=>setFinalView('mx');
+ (function(){var b=document.getElementById('finalCalPrint');if(b)b.onclick=finalCalPrint;})();
  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.getAttribute('data-close')));
  document.querySelectorAll('.modal-ov').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.add('hide');}));
  document.getElementById('genBtn').onclick=()=>{if(confirm('조건에 맞게 근무표를 자동 생성합니다. 달력에서 수동 조정한 내용은 새로 계산됩니다. 진행할까요?')){generateBalanced();clearRegen();showPage(5);switchView5('rest');}};
