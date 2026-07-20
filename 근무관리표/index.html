@@ -430,6 +430,10 @@
   <div class="step">
    <div class="shd"><span class="sbadge">3단계</span><span class="stt">팀별 최소 근무 인원</span>
     <span class="tip" tabindex="0"><span class="qi">?</span><span class="bub">각 팀이 하루에 최소 몇 명 나와야 하는지. 평일·토요일 칸에 직접 숫자를 적어요. 토요일을 0으로 두면 직원들이 돌아가며 공평하게 쉽니다.</span></span></div>
+   <div style="border:1px solid var(--info);background:var(--info-bg);border-radius:8px;padding:9px 12px;margin:0 0 10px;font-size:12.5px;line-height:1.6">
+    ⚖️ <b>직원 법정 휴무가 우선입니다.</b> 최소 인원을 높게 적어도 <b>직원들의 이번 달 휴무(법정 휴일 수)는 그대로 보장</b>되고, 그 결과 최소 인원이 못 채워지는 날은 근무표 생성 후 <b>「인력 부족」으로 알려드려요</b>.<br>
+    부족한 날에 기관 운영상 근무가 꼭 필요하면, 근무표에서 <b>휴일근로수당(급여보상) 또는 대체휴무</b>를 주는 방식으로 직접 근무를 추가하실 수 있어요. 송영 차량 운전은 휴무를 다른 날로 옮겨 자동으로 지켜집니다.
+   </div>
    <div class="sub" style="margin:0 0 5px;font-weight:600;color:var(--tx2)">평일</div>
    <div class="row" style="gap:14px;flex-wrap:wrap;margin-bottom:8px">
     <label class="fld">행정팀 <input type="number" id="minHaeng" min="0" style="width:48px"></label>
@@ -734,7 +738,7 @@
     <li><b>v6.2 새 화면</b> — 세로 7탭 재구성, 첫 화면 지점 클릭 로그인(처음 비번 0000)·최초 로그인 비번 변경, 📤 월 근무표 본부보고(슬랙), 점검→조치(급여보상·대체휴무·맞교대), 장기요양 고시 근무일수</li>
     <li><b>v6.3 생활실 업무 분장표(7번 탭)</b> — 날짜별 층/구역별 근무자 자동 + 시간×구역 표에 프로그램·담당 배정 + 텍스트 복사(밴드·카톡)·인쇄, 지점별 템플릿(구역·업무 항목) 편집</li>
    </ol>
-   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v7.9</div>
+   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v8.0</div>
   </details>
  </footer>
 </div>
@@ -867,7 +871,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='7.9';
+ const APP_VERSION='8.0';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -1130,16 +1134,27 @@
    weeks.forEach(w=>{if(cur<target&&(restWk[w]||0)===0&&place(w))cur++;});
    var guard=0;while(cur<target&&guard++<80){const avail=weeks.filter(w=>(byWeek[w]||[]).filter(validDay).length>0);if(!avail.length)break;avail.sort((a,b)=>(restWk[a]||0)-(restWk[b]||0));if(place(avail[0]))cur++;else break;}
   });
-  // 2) 조건 충족 보정 (송영·동승 정·부 / 맞이인원)
-  // 보정으로 근무 전환 가능 = 그날 휴무이면서 그 휴무가 '자동 배분'분일 때만 (수동 지정·연차·특별·급여보상은 건드리지 않음)
+  // 2) 조건 충족 보정 — ★직원 법정휴무 우선: 송영(운전)만 지킨다.
+  //    맞이·팀 최소인원은 강제로 근무 전환하지 않음(휴무 유지) → 부족한 날은 5번 점검에서 '인력 부족'으로 알림, 지점장이 수용·수동조치.
   const movable=(n,cd,key)=>cd.off.includes(n)&&(S.fixedAuto[n]||[]).includes(key)&&!(S.annual[n]||[]).includes(key)&&!(S.special[n]&&(key in S.special[n]));
+  // 운전 지키기: 자동휴무를 '뺏지' 않고 다른 빈 날로 '이동'해서 6일을 유지. 이동 불가능할 때만 근무 전환.
+  const moveRest=(n,fromKey,fromD)=>{
+   const tm=teamOf(n),pool=satRotTeams.includes(tm)?wdOpDays:opDays;
+   const cand=pool.filter(function(dd){if(dd<=fromD)return false;const kk=k(y,m,dd);if(!canRestDay(n,y,m,dd))return false;if((S.fixed[n]||[]).includes(kk)||(S.annual[n]||[]).includes(kk)||(S.special[n]&&(kk in S.special[n])))return false;if((partner[n]||[]).some(function(pt){return (S.fixed[pt]||[]).includes(kk)||(S.annual[pt]||[]).includes(kk)||(S.special[pt]&&(kk in S.special[pt]));}))return false;return true;});
+   if(!cand.length)return false;
+   const restWk={};(S.fixed[n]||[]).forEach(function(kk){if(kk.indexOf(S.month)===0)restWk[weekOf(+kk.slice(8))]=1;});
+   cand.sort(function(a,b){return ((restWk[weekOf(a)]?1:0)-(restWk[weekOf(b)]?1:0))||(Math.random()-0.5);});
+   const toKey=k(y,m,cand[0]);
+   S.fixed[n]=(S.fixed[n]||[]).filter(function(x){return x!==fromKey;});S.fixed[n].push(toKey);
+   S.fixedAuto[n]=(S.fixedAuto[n]||[]).filter(function(x){return x!==fromKey;});S.fixedAuto[n].push(toKey);
+   return true;
+  };
   for(let d=1;d<=days;d++){
    const dow=new Date(y,m,d).getDay();if(dow===0)continue;
    const key=k(y,m,d);
    const fw=n=>{const f=S.force[key]||(S.force[key]={in:[],song:[],off:[]});if(f.in.indexOf(n)<0&&f.song.indexOf(n)<0)f.in.push(n);};
-   S.cars.forEach(c=>{const crew=carCrew(c,dow===6);if(!crew)return;[crew.drv,crew.esc].forEach(pr=>{const all=grpAll(pr);if(all.length<2)return;const cd=computeDay(y,m,d);if(all.every(n=>cd.off.includes(n))){for(let i=0;i<all.length;i++){if(movable(all[i],cd,key)){fw(all[i]);break;}}}});});
-   {const ngreet=greetMinFor(dow);if(S.greetUse&&ngreet>0){const care=S.roster[S.careTeam]||[];let cd=computeDay(y,m,d);let cnt=cd.working.filter(n=>care.includes(n)&&!cd.song.includes(n)).length;for(let gi=0;gi<care.length&&cnt<ngreet;gi++){const n=care[gi];cd=computeDay(y,m,d);if(movable(n,cd,key)){fw(n);cd=computeDay(y,m,d);cnt=cd.working.filter(x=>care.includes(x)&&!cd.song.includes(x)).length;}}}}
-   ['행정팀','돌봄요양팀','간호요양팀'].forEach(t=>{const need=minTeamFor(t,dow);if(need<=0)return;const mem=S.roster[t]||[];let cd=computeDay(y,m,d);let cnt=cd.working.filter(n=>mem.includes(n)).length;for(let mi=0;mi<mem.length&&cnt<need;mi++){const n=mem[mi];cd=computeDay(y,m,d);if(movable(n,cd,key)){fw(n);cnt++;}}});
+   // 송영(차량) 정·부가 전원 휴무면 한 명은 근무 — 먼저 휴무 이동(6일 유지), 안되면 근무 전환
+   S.cars.forEach(c=>{const crew=carCrew(c,dow===6);if(!crew)return;[crew.drv,crew.esc].forEach(pr=>{const all=grpAll(pr);if(all.length<2)return;const cd=computeDay(y,m,d);if(all.every(n=>cd.off.includes(n))){for(let i=0;i<all.length;i++){if(movable(all[i],cd,key)){if(!moveRest(all[i],key,d))fw(all[i]);break;}}}});});
    const f=S.force[key];if(f&&!f.in.length&&!f.song.length&&!f.off.length)delete S.force[key];
   }
   save();
@@ -1772,7 +1787,9 @@
  }
  function renderChecks(){var el=document.getElementById('checkPanel');if(!el)return;var c=curDate(),issues=runChecks(c.getFullYear(),c.getMonth()),dn=['일','월','화','수','목','금','토'];
   if(!issues.length){el.innerHTML='<div class="card" style="border:1px solid var(--duty);background:var(--duty-bg);padding:11px 14px"><b style="color:var(--duty)">✅ 점검 결과 — 문제 없음</b> <span class="sub" style="margin:0">모든 날 최소 인원·맞이·차량 정상이에요.</span></div>'+holidayPayHtml()+noOverlapHtml();return;}
+  var hasShort=issues.some(function(x){return x.cat==='minteam'||x.cat==='greet';});
   var h='<div class="card" style="border:1px solid var(--danger);padding:12px 14px"><div style="font-weight:600;color:var(--danger);display:flex;align-items:center;gap:7px;margin-bottom:9px">🔎 점검 결과 <span class="badge-need">조치 필요 '+issues.length+'건</span></div>';
+  if(hasShort)h+='<div class="sub" style="margin:0 0 10px;padding:8px 10px;border-radius:8px;background:var(--info-bg);border:1px solid var(--info);line-height:1.6">⚖️ <b>직원 법정 휴무를 우선</b>해 휴무는 그대로 두고, 최소 인원이 못 채워진 날만 아래에 알려드려요. 이대로 <b>수용</b>하셔도 되고, 기관 운영상 근무가 꼭 필요한 날은 항목을 눌러 <b>급여보상(휴일근로수당) 근무</b> 또는 <b>대체휴무</b>로 직접 추가하세요.</div>';
   issues.forEach(function(is,ix){var sev=is.level==='danger'?'var(--danger)':'var(--fixed)';var dlab=is.cat==='balance'?'공평성':(is.d+'일('+dn[is.dow]+')');h+='<div class="acc"><div class="accbar" style="padding:9px 11px"><span class="cv">▶</span><span style="color:'+sev+';font-weight:600;font-size:13px">'+dlab+'</span><span style="font-size:13px;flex:1">'+is.title+'</span></div><div class="accbody">'+chkFix(is)+'</div></div>';});
   h+='</div>';h+=holidayPayHtml();h+=noOverlapHtml();el.innerHTML=h;
   el.querySelectorAll('.accbar').forEach(function(b){b.onclick=function(){b.parentElement.classList.toggle('open');};});
