@@ -660,6 +660,7 @@
     </div>
    </div>
    <p class="sub noprint">자동 생성한 최종 근무표예요. <b>달력형</b>(날짜별)·<b>개인표</b>(직원×날짜)를 골라 보세요. (휴=지정휴일, 연=연차, 특=특별휴무, 급=급여보상, 회색=일요일, 빨간테두리=공휴일)</p>
+   <div id="finalShortfall"></div>
    <div id="finalCalWrap">
     <div class="calgrid" id="finalCal"></div>
    </div>
@@ -670,6 +671,7 @@
    <div class="card">
     <h2>휴무 · 연차 신청 <span class="sub" style="font-weight:400">(이름 옆에 날짜만 숫자로 입력 · 예: 4,27)</span></h2>
     <p class="sub"><b>근로자 지정</b> = 근로자가 꼭 쉬고 싶은 날(직접 입력, 생성해도 유지) · <b>자동 배분</b> = 나머지를 앱이 채움. 달력·근무표에 바로 반영됩니다. 휴일·교육 등은 사유를 적으면 달력에 초록색으로 표시됩니다.</p>
+    <div id="reqShortNote"></div>
     <div id="reqTable" style="overflow:auto"></div>
    </div>
   </section>
@@ -722,7 +724,7 @@
     <li><b>v6.2 새 화면</b> — 세로 7탭 재구성, 첫 화면 지점 클릭 로그인(처음 비번 0000)·최초 로그인 비번 변경, 📤 월 근무표 본부보고(슬랙), 점검→조치(급여보상·대체휴무·맞교대), 장기요양 고시 근무일수</li>
     <li><b>v6.3 생활실 업무 분장표(7번 탭)</b> — 날짜별 층/구역별 근무자 자동 + 시간×구역 표에 프로그램·담당 배정 + 텍스트 복사(밴드·카톡)·인쇄, 지점별 템플릿(구역·업무 항목) 편집</li>
    </ol>
-   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v7.7</div>
+   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v7.8</div>
   </details>
  </footer>
 </div>
@@ -853,7 +855,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='7.7';
+ const APP_VERSION='7.8';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -1502,6 +1504,9 @@
  }
  function renderReqTable(){
   const el=document.getElementById('reqTable');if(!el)return;
+  var rsn=document.getElementById('reqShortNote');
+  if(rsn){var sf0=(typeof shortfallList==='function')?shortfallList():{rows:[]};
+   rsn.innerHTML=sf0.rows.length?'<p class="sub" style="margin:0 0 8px;color:var(--fixed)">⚠️ 이 표의 자동 배분 중 <b>'+sf0.rows.length+'명·'+sf0.total+'일</b>은 최소인원 유지 때문에 <b>최종 근무표에서 근무로 전환</b>돼 있어요. 자세한 내용·해결 방법은 <b>5번 탭 상단 안내</b>를 확인하세요.</p>':'';}
   const names=allNames();
   if(!names.length){el.innerHTML='<p class="sub" style="margin:0">직원을 먼저 등록하세요.</p>';return;}
   const _pp=S.month.split('-'),_y=+_pp[0],_mi=+_pp[1]-1,_dim=new Date(_y,_mi+1,0).getDate(),_st=monthStd(_y,_mi);
@@ -1952,9 +1957,36 @@
   a.href=url;a.download='케어포_근무일정_'+y+'-'+String(m+1).padStart(2,'0')+'.xls';
   document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1500);
  }
+ // 자동휴무가 보정(최소인원·맞이·차량)으로 근무 전환된 내역 — 정직하게 표시
+ function shortfallList(){
+  const mon=S.month,out=[];let tot=0;
+  const teamOf=n=>{for(var t in S.roster){if((S.roster[t]||[]).indexOf(n)>=0)return t;}return '';};
+  allNames().forEach(function(n){
+   const auto=((S.fixedAuto&&S.fixedAuto[n])||[]).filter(function(k){return String(k).indexOf(mon)===0;});
+   const lost=auto.filter(function(k){const f=(S.force&&S.force[k])||{};return (f.in||[]).indexOf(n)>=0;});
+   if(lost.length){out.push({n:n,team:teamOf(n),days:lost.map(function(k){return +k.slice(8);}).sort(function(a,b){return a-b;})});tot+=lost.length;}
+  });
+  out.sort(function(a,b){return b.days.length-a.days.length;});
+  return {rows:out,total:tot};
+ }
+ function shortfallHtml(){
+  const sf=shortfallList();if(!sf.rows.length)return '';
+  let h='<div class="card noprint" style="border:1px solid var(--fixed);background:var(--fixed-bg,#FFF7ED);padding:12px 14px;margin-bottom:12px">';
+  h+='<div style="font-weight:600;color:var(--fixed);margin-bottom:6px">⚠️ 휴무 목표 미달 — 자동휴무 일부가 최종 근무표에서 근무로 전환됐어요</div>';
+  h+='<div class="sub" style="margin:0 0 6px">아래 직원은 배정된 휴무 일부가 최소인원 유지를 위해 근무로 바뀌었어요 (총 <b>'+sf.rows.length+'명 · '+sf.total+'일</b>):</div>';
+  h+='<div style="font-size:12px;line-height:1.7">';
+  sf.rows.forEach(function(r){h+='<span style="display:inline-block;margin:0 10px 2px 0">· <b>'+lesc(r.n)+'</b>'+(r.team?'<span class="sub" style="margin:0">('+lesc(r.team)+')</span>':'')+' '+r.days.length+'일 <span class="sub" style="margin:0">('+r.days.join(', ')+'일)</span></span>';});
+  h+='</div>';
+  var whyCond=(S.greetUse&&S.greetMin?'맞이 최소 '+S.greetMin+'명 · ':'')+'차량 '+((S.cars||[]).length)+'대 · 하루 최소 근무인원';
+  h+='<div class="sub" style="margin:8px 0 0">왜? 주로 '+whyCond+'을 지키려고 직원을 근무로 당겨서예요. (달력에서 수동으로 근무 전환한 날이 포함될 수도 있어요.)</div>';
+  h+='<div class="sub" style="margin:4px 0 0"><b>휴무를 늘리려면:</b> ① 1번 탭 「맞이 최소 인원」을 낮추기'+(S.greetUse&&S.greetMin?' (현재 '+S.greetMin+'명)':'')+' ② 4번 탭 차량 부(백업) 배정 줄이기 ③ 급하면 아래 달력에서 해당 직원을 다른 빈 날에 휴무로 끌어놓기</div>';
+  h+='</div>';
+  return h;
+ }
  function renderFinal(){
   const c=curDate(),y=c.getFullYear(),m=c.getMonth();
   document.getElementById('finalTitle').textContent=y+'년 '+(m+1)+'월 최종 스케줄표';
+  var sfEl=document.getElementById('finalShortfall');if(sfEl)sfEl.innerHTML=shortfallHtml();
   renderFinalCal();renderFinalMatrix();
   document.getElementById('finalCalWrap').classList.toggle('hide',finalView!=='cal');
   document.getElementById('finalMxWrap').classList.toggle('hide',finalView!=='mx');
