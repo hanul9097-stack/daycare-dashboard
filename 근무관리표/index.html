@@ -674,8 +674,10 @@
      <button class="btn" id="finalMxPrint" title="개인표(직원×날짜)를 인쇄">🖨 개인표 인쇄</button>
      <button class="btn" id="finalMxCsv" title="개인표를 엑셀(CSV)로 저장">⬇ 엑셀</button>
      <button class="btn" id="confirmBtn" title="이 달 근무표를 확정하면, 다시 생성 시 새로 섞임 경고가 떠서 실수로 안 바뀌어요">✔ 이 달 확정</button>
+     <button class="btn" id="guideBtn" title="새 기능·버튼 사용 안내를 다시 봅니다">📢 사용 안내</button>
      <span id="finalMsg" class="sub" style="margin:0;color:var(--duty);font-weight:500"></span>
     </div>
+    <div class="sub noprint" style="margin:5px 0 0;font-size:11.5px;color:var(--tx3);line-height:1.55">🖨 <b>달력·개인표 인쇄</b> = A4 한 장 인쇄 · ⬇ <b>엑셀</b> = 엑셀 파일 저장 · ✔ <b>이 달 확정</b> = 재생성 잠금(중간 변경은 달력에서 그대로) · 📢 <b>사용 안내</b> = 새 기능 설명</div>
    </div>
    <div id="confirmBanner" class="card noprint" style="display:none;background:#ecfdf5;border:1px solid var(--duty);padding:10px 14px;margin:0 0 10px;line-height:1.5"><b style="color:var(--duty)">✔ 이 달 근무표를 확정했어요.</b> <span style="font-size:13px;color:var(--tx2)">「생성 / 다시 섞기」를 누르면 지금 근무표가 새로 섞이니 주의하세요. 중간 변경(연차·교대)은 <b>달력에서 그대로</b> 하시면 됩니다.</span></div>
    <p class="sub noprint">자동 생성한 최종 근무표예요. <b>달력형</b>(날짜별)·<b>개인표</b>(직원×날짜)를 골라 보세요. (휴=지정휴일, 연=연차, 특=특별휴무, 급=급여보상, 회색=일요일, 빨간테두리=공휴일)</p>
@@ -743,7 +745,7 @@
     <li><b>v6.2 새 화면</b> — 세로 7탭 재구성, 첫 화면 지점 클릭 로그인(처음 비번 0000)·최초 로그인 비번 변경, 📤 월 근무표 본부보고(슬랙), 점검→조치(급여보상·대체휴무·맞교대), 장기요양 고시 근무일수</li>
     <li><b>v6.3 생활실 업무 분장표(7번 탭)</b> — 날짜별 층/구역별 근무자 자동 + 시간×구역 표에 프로그램·담당 배정 + 텍스트 복사(밴드·카톡)·인쇄, 지점별 템플릿(구역·업무 항목) 편집</li>
    </ol>
-   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v8.4</div>
+   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v8.5</div>
   </details>
  </footer>
 </div>
@@ -879,7 +881,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='8.4';
+ const APP_VERSION='8.5';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -897,6 +899,28 @@
   document.getElementById('updateReloadBtn').onclick=function(){try{location.reload(true);}catch(e){location.reload();}};
   document.getElementById('updateLaterBtn').onclick=function(){d.remove();};
  }
+ // ===== 사용 안내(새 기능) 팝업 =====
+ function showGuide(){
+  var old=document.getElementById('guidePop');if(old)old.remove();
+  var ov=document.createElement('div');ov.id='guidePop';
+  ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit';
+  ov.innerHTML='<div style="background:var(--surface);border-radius:14px;max-width:470px;width:100%;max-height:86vh;overflow:auto;padding:18px 20px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:left;line-height:1.55">'
+   +'<div style="font-weight:800;font-size:17px;color:var(--info);margin-bottom:4px">📢 근무관리표 새 기능 안내</div>'
+   +'<div class="sub" style="margin:0 0 10px">아래 기능은 <b>5번 「최종 스케줄표」 탭</b>에 있어요.</div>'
+   +'<div style="font-size:13.5px;color:var(--tx)">'
+   +'<div style="font-weight:700;margin:8px 0 3px">🖨 인쇄 · 엑셀</div>'
+   +'<div style="color:var(--tx2)">· <b>달력 인쇄</b> — 휴무 달력을 A4 가로 한 장으로<br>· <b>개인표 인쇄</b> — 직원×날짜 표를 한 장으로<br>· <b>엑셀</b> — 개인표를 엑셀 파일로 저장</div>'
+   +'<div style="font-weight:700;margin:12px 0 3px">✔ 이 달 확정</div>'
+   +'<div style="color:var(--tx2)">확정하면 실수로 「생성 / 다시 섞기」를 눌러도 <b>경고가 떠서 근무표가 안 섞여요.</b> 연차·교대 같은 <b>중간 변경은 달력에서 그대로</b> 하시면 됩니다. 다시 새로 짜려면 「확정 해제」를 누르세요.</div>'
+   +'<div style="font-weight:700;margin:12px 0 3px">🔎 점검 결과</div>'
+   +'<div style="color:var(--tx2)">인원 부족·차량 공백 등을 <b>유형별로 묶어</b> 보여줘요. <b>직원 법정 휴무가 우선</b>이라, 최소 인원이 부족한 날은 알려드리고 필요하면 급여보상(휴일수당) 근무를 직접 추가할 수 있어요.</div>'
+   +'</div><div style="text-align:right;margin-top:14px"><button class="btn pri" id="guideCloseBtn">닫기</button></div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('guideCloseBtn').onclick=function(){ov.remove();};
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+ }
+ var guideShown=false;
+ function maybeShowGuide(){if(guideShown)return;if(adminViewMode)return;var seen='';try{seen=localStorage.getItem('geunmuGuideVer')||'';}catch(e){}if(seen===APP_VERSION)return;guideShown=true;try{localStorage.setItem('geunmuGuideVer',APP_VERSION);}catch(e){}setTimeout(showGuide,700);}
  let centralBranches=null; // 중앙 승인 지점 목록(null=아직 못 받음 → 오프라인/로컬)
  let centralSaveTimer=null;
  function centralGet(action){return fetch(CENTRAL_URL+'?action='+encodeURIComponent(action)).then(function(r){return r.json();});}
@@ -993,7 +1017,7 @@
  function setSaves(a){try{localStorage.setItem(savesKey(branch),JSON.stringify(a));}catch(e){}}
  function saveAll(){S.savedAt=new Date().toISOString();save();const saves=getSaves();const mm=parseInt(S.month.slice(5),10);const k2=saves.filter(s=>s.data&&s.data.month===S.month).length+1;const label=mm+'월 '+k2+'차';saves.unshift({at:S.savedAt,label:label,data:JSON.parse(JSON.stringify(S))});if(saves.length>10)saves.length=10;setSaves(saves);showSavedAt();renderSaveList();const el=document.getElementById('savedAtMsg');if(el){el.style.color='var(--duty)';el.textContent=label+' 저장 완료!';setTimeout(()=>{el.style.color='var(--tx3)';showSavedAt();},2000);}}
  function renderSaveList(){const el=document.getElementById('saveList');if(!el)return;const saves=getSaves();el.innerHTML='';if(!saves.length)return;const h=document.createElement('div');h.className='sub';h.style.margin='4px 0';h.textContent='저장된 내용 — 불러오기를 누르면 그때 내용으로 되돌아갑니다';el.appendChild(h);saves.forEach((s,i)=>{const row=document.createElement('div');row.className='row';row.style.cssText='gap:8px;margin-bottom:5px';const lbl=document.createElement('span');lbl.style.cssText='font-size:13px;min-width:150px';lbl.textContent=(s.label?s.label+' · ':'')+fmtDt(s.at);const load=document.createElement('button');load.className='btn';load.textContent='불러오기';load.onclick=()=>{if(confirm(fmtDt(s.at)+' 저장본으로 되돌릴까요? 지금 입력한 내용은 사라집니다.'))loadSnapshot(i);};const del=document.createElement('button');del.className='btn';del.textContent='삭제';del.onclick=()=>{const a=getSaves();a.splice(i,1);setSaves(a);renderSaveList();};row.appendChild(lbl);row.appendChild(load);row.appendChild(del);el.appendChild(row);});}
- function refreshAll(){sortRoster();$('#month').value=S.month;$('#greetUse').checked=S.greetUse;$('#greetMin').value=S.greetMin;$('#fixedCount').value=S.fixedCount;greetHintUpdate();syncMinTeam();renderNoOverlap();if(typeof renderSpecialDays==='function')renderSpecialDays();updateStdRef();recomputeOffsets();renderRoster();renderPalettes();renderSatGroups();renderCars();renderEvents();refreshReqUI();if(typeof renderGenSummary==='function')renderGenSummary();updateCounts();showSavedAt();renderSaveList();renderBranchTabs();renderCalendar();updateMigrateUI();updateLockUI();if(typeof updateConfirmUI==='function')updateConfirmUI();if(typeof renderSlackBanner==='function')renderSlackBanner();}
+ function refreshAll(){sortRoster();$('#month').value=S.month;$('#greetUse').checked=S.greetUse;$('#greetMin').value=S.greetMin;$('#fixedCount').value=S.fixedCount;greetHintUpdate();syncMinTeam();renderNoOverlap();if(typeof renderSpecialDays==='function')renderSpecialDays();updateStdRef();recomputeOffsets();renderRoster();renderPalettes();renderSatGroups();renderCars();renderEvents();refreshReqUI();if(typeof renderGenSummary==='function')renderGenSummary();updateCounts();showSavedAt();renderSaveList();renderBranchTabs();renderCalendar();updateMigrateUI();updateLockUI();if(typeof updateConfirmUI==='function')updateConfirmUI();if(typeof renderSlackBanner==='function')renderSlackBanner();if(typeof maybeShowGuide==='function')maybeShowGuide();}
  function loadSnapshot(i){const saves=getSaves();if(!saves[i])return;S=normalize(JSON.parse(JSON.stringify(saves[i].data)));save();refreshAll();}
  function renderBranchTabs(){const el=document.getElementById('curBranch');if(el)el.textContent=branch;}
  const pwKey=b=>'geunmuPw::'+b;
@@ -2232,7 +2256,7 @@
  (function(){var aa=document.getElementById('annualAdd');if(aa)aa.onclick=addAnnualReq;var sa=document.getElementById('specialAdd');if(sa)sa.onclick=addSpecialReq;})();
  document.getElementById('finalViewCal').onclick=()=>setFinalView('cal');
  document.getElementById('finalViewMx').onclick=()=>setFinalView('mx');
- (function(){var cb=document.getElementById('confirmBtn');if(cb)cb.onclick=confirmToggle;})();
+ (function(){var cb=document.getElementById('confirmBtn');if(cb)cb.onclick=confirmToggle;var gb=document.getElementById('guideBtn');if(gb)gb.onclick=showGuide;})();
  (function(){var b=document.getElementById('finalCalPrint');if(b)b.onclick=finalCalPrint;var b2=document.getElementById('finalMxPrint');if(b2)b2.onclick=finalMxPrint;var b3=document.getElementById('finalMxCsv');if(b3)b3.onclick=finalMxCsv;})();
  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.getAttribute('data-close')));
  document.querySelectorAll('.modal-ov').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.add('hide');}));
