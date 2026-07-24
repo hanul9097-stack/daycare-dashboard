@@ -434,10 +434,6 @@
     ⚖️ <b>직원 법정 휴무가 우선입니다.</b> 최소 인원을 높게 적어도 <b>직원들의 이번 달 휴무(법정 휴일 수)는 그대로 보장</b>되고, 그 결과 최소 인원이 못 채워지는 날은 근무표 생성 후 <b>「인력 부족」으로 알려드려요</b>.<br>
     부족한 날에 기관 운영상 근무가 꼭 필요하면, 근무표에서 <b>휴일근로수당(급여보상) 또는 대체휴무</b>를 주는 방식으로 직접 근무를 추가하실 수 있어요. 송영 차량 운전은 휴무를 다른 날로 옮겨 자동으로 지켜집니다.
    </div>
-   <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px;padding:8px 11px;border:1px solid var(--duty);background:var(--duty-bg);border-radius:8px">
-    <label class="fld"><b style="color:var(--duty)">🧮 월 평균 이용자(등원) 수</b> <input type="number" id="avgUsers" min="0" style="width:60px"> 명</label>
-    <span class="sub" id="avgUsersHint" style="margin:0;color:var(--tx2);font-size:12px"></span>
-   </div>
    <div class="sub" style="margin:0 0 5px;font-weight:600;color:var(--tx2)">평일</div>
    <div class="row" style="gap:14px;flex-wrap:wrap;margin-bottom:8px">
     <label class="fld">행정팀 <input type="number" id="minHaeng" min="0" style="width:48px"></label>
@@ -749,7 +745,7 @@
     <li><b>v6.2 새 화면</b> — 세로 7탭 재구성, 첫 화면 지점 클릭 로그인(처음 비번 0000)·최초 로그인 비번 변경, 📤 월 근무표 본부보고(슬랙), 점검→조치(급여보상·대체휴무·맞교대), 장기요양 고시 근무일수</li>
     <li><b>v6.3 생활실 업무 분장표(7번 탭)</b> — 날짜별 층/구역별 근무자 자동 + 시간×구역 표에 프로그램·담당 배정 + 텍스트 복사(밴드·카톡)·인쇄, 지점별 템플릿(구역·업무 항목) 편집</li>
    </ol>
-   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v8.6</div>
+   <div style="text-align:center;padding:0 14px 10px;font-size:11px;color:var(--tx3)">근무 / 휴무 자동생성 프로그램 · v8.7</div>
   </details>
  </footer>
 </div>
@@ -758,7 +754,6 @@
  const WD=['월','화','수','목','금','토'];
  const DEFAULT={
   month:'2026-07',
-  avgUsers:0,
   satGroups:['행정팀'],
   careTeam:'돌봄요양팀',
   roster:{
@@ -885,7 +880,7 @@
  // ===== 중앙DB(구글시트+GAS) 연동 =====
  const CENTRAL_URL='https://script.google.com/macros/s/AKfycbywBl_O9idjI565fMSUc8DNKmAoAUXnJiJsVMUWOj7BPSxceSyPMPwZ9eFgTlfarEoIWg/exec';
  // ===== 새 버전 알림 =====
- const APP_VERSION='8.6';
+ const APP_VERSION='8.7';
  let updateShownFor='';
  function checkUpdate(){
   fetch('version.json?t='+Date.now()).then(function(r){return r.json();}).then(function(v){
@@ -960,7 +955,7 @@
   ['남은 휴일은 주마다 골고루','한 주에 한 번은 쉬도록 먼저 놓고, 그날 팀에서 너무 많이 빠지지 않게 균형을 맞춰요.'],
   ['신청한 휴가 날은 건드리지 않아요','연차·반차·특별휴가로 신청한 날에는 자동 휴일을 넣지 않아요.'],
   ['차량 정·부가 같은 날 함께 쉬지 않게','한 차량의 운전(또는 동승) 정·부가 같은 날 다 쉬어서 차가 못 나가는 일을 막아요. (부는 여러 명 등록 가능)'],
-  ['팀별 최소 근무 인원 — 토요일은 지키고, 평일은 안내','토요일은 최소 인원을 지키며 휴무를 나눠요. 평일은 <b>직원 법정 휴무가 우선</b>이라, 최소 인원이 모자란 날은 5번 점검에서 「인력 부족」으로 알려드려요(자동으로 근무 전환하진 않아요). 요양보호사 최소는 「월 평균 이용자 수」로 자동 계산돼요(법정 7:1).'],
+  ['팀별 최소 근무 인원 — 토요일은 지키고, 평일은 안내','토요일은 최소 인원을 지키며 휴무를 나눠요. 평일은 <b>직원 법정 휴무가 우선</b>이라, 최소 인원이 모자란 날은 5번 점검에서 「인력 부족」으로 알려드려요(자동으로 근무 전환하진 않아요).'],
   ['맞이(내근) 최소 인원을 안내해요','근무하는 사람 중에서 맞이(내근)를 배치하고, 맞이가 모자란 날은 5번 점검에서 「맞이 부족」으로 알려드려요(자동 근무 전환은 안 해요).'],
   ['송영(차량 운행)이 끊기지 않게','정·부가 다 쉬는 차량이 생기면 한 명을 근무로 돌려 운행을 이어가요.'],
   ['중간 입사자·단시간(파트타임) 반영','입사일 이후부터, 기간에 비례해 휴일을 줘요. 단시간 근로자는 자동 휴일 대상에서 빼요.'],
@@ -1518,7 +1513,7 @@
  function greetHintUpdate(){const el=document.getElementById('greetHint');if(!el)return;el.textContent=(S.greetUse&&(!S.greetMin||S.greetMin<=0))?'사용하려면 일일 최소 인원 숫자를 입력하세요':'';}
  function flagRegen(){var el=document.getElementById('regenHint');if(el)el.classList.remove('hide');}
  function clearRegen(){var el=document.getElementById('regenHint');if(el)el.classList.add('hide');}
- function syncMinTeam(){if(!S.minTeam)S.minTeam={};if(!S.minTeamSat)S.minTeamSat={};[['minHaeng','행정팀'],['minDolbom','돌봄요양팀'],['minGanho','간호요양팀']].forEach(function(p){var e=document.getElementById(p[0]);if(e)e.value=S.minTeam[p[1]]||0;var es=document.getElementById(p[0]+'Sat');if(es)es.value=S.minTeamSat[p[1]]||0;});var gs=document.getElementById('greetMinSat');if(gs)gs.value=S.greetMinSat||0;var au=document.getElementById('avgUsers');if(au)au.value=S.avgUsers||0;if(typeof avgUsersHintUpdate==='function')avgUsersHintUpdate();}
+ function syncMinTeam(){if(!S.minTeam)S.minTeam={};if(!S.minTeamSat)S.minTeamSat={};[['minHaeng','행정팀'],['minDolbom','돌봄요양팀'],['minGanho','간호요양팀']].forEach(function(p){var e=document.getElementById(p[0]);if(e)e.value=S.minTeam[p[1]]||0;var es=document.getElementById(p[0]+'Sat');if(es)es.value=S.minTeamSat[p[1]]||0;});var gs=document.getElementById('greetMinSat');if(gs)gs.value=S.greetMinSat||0;}
  function renderSpecialDays(){
   var ew=document.getElementById('edgeWork');if(ew)ew.checked=!!S.edgeWork;
   var el=document.getElementById('holidayDutyList');if(!el)return;
@@ -1754,21 +1749,6 @@
    if(!sd){hh+='<div class="sub" style="margin:0;color:var(--danger)">맞바꿀 적당한 날이 없어요 ('+L+'가 쉬는 날에 '+H+'가 근무하는 날이 없음).</div>';return hh;}
    hh+='<button class="btn" data-fo="swap" data-fn="'+encodeURIComponent(H)+'" data-fl="'+encodeURIComponent(L)+'" data-fk="'+sk+'" data-ft="'+is.team+'" data-fd="'+sd+'" style="border-color:var(--info);color:var(--info)">'+sd+'일 맞교대 · '+H+'↔'+L+'</button>';return hh;}
   return '';}
- function dolbomFTE(y,m){var std=(gositCalc(y,m).hours)||168;var fte=0;(S.roster['돌봄요양팀']||[]).forEach(function(n){if(isPT(n)){var h=(S.ptHours&&S.ptHours[n])||0;fte+=h>0?Math.min(1,h/std):0.5;}else fte+=1;});return fte;}
- function avgUsersHintUpdate(){var el=document.getElementById('avgUsersHint');if(!el)return;var au=+(S.avgUsers||0);el.innerHTML=au>0?('→ 요양보호사 최소 <b>'+Math.ceil(au/7)+'명</b> 필요 (법정 7:1 · 돌봄요양팀 평일 최소에 자동 반영)'):'평균 등원 인원을 넣으면 요양보호사 최소 인원이 자동 계산돼요';}
- function staffLawHtml(){
-  var c=curDate(),y=c.getFullYear(),m=c.getMonth();var au=+(S.avgUsers||0);var std=gositCalc(y,m);
-  var base='<div class="card noprint" style="border:1px solid var(--info);background:var(--info-bg);padding:12px 14px;margin-top:12px"><div style="font-weight:600;color:var(--info);margin-bottom:6px">🧮 법정 인력·시간 점검 <span class="sub" style="margin:0;font-weight:400">(케어포·고시 기준)</span></div>';
-  if(au<=0)return base+'<div class="sub" style="margin:0">1번 탭 3단계에 <b>「월 평균 이용자 수」</b>를 입력하면, 요양보호사 법정 배치(7:1) 충족을 자동 점검해드려요.</div><div class="sub" style="margin:6px 0 0">· 월 기준근무시간 <b>'+std.hours+'시간</b> (근무가능일 '+std.workable+'일 × 8h · 고시 제49조)</div></div>';
-  var need=Math.ceil(au/7),gasan=au/6.4,fte=dolbomFTE(y,m),fteR=Math.round(fte*10)/10;
-  var yoStat=fte>=need?'<span style="color:var(--duty);font-weight:600">✅ 충족</span>':'<span style="color:var(--danger);font-weight:600">⚠ 미달 (급여 감액 주의)</span>';
-  var gasanNote=(gasan>0&&fte>=gasan)?' · 💡 6.4:1 달성 → 인력추가배치 가산 가능':'';
-  var has=function(t){return (S.roster[t]||[]).length>0?'✅':'<span style="color:var(--danger)">—</span>';};
-  var h=base;
-  h+='<div class="sub" style="margin:0 0 4px;line-height:1.6"><b>요양보호사</b> 필요 <b>'+need+'명</b> (평균이용자 '+au+' ÷ 7) · 보유 <b>'+fteR+'명</b>(FTE) → '+yoStat+gasanNote+'</div>';
-  h+='<div class="sub" style="margin:0 0 4px">간호/물리 '+has('간호요양팀')+' · 사회복지·사무 '+has('행정팀')+' · 조리 '+has('조리팀')+' · 운전 '+has('운전원')+' <span style="color:var(--tx3)">(이용자 10명↑ 시 간호/물리 중 1명 이상)</span></div>';
-  h+='<div class="sub" style="margin:0">· 월 기준근무시간 <b>'+std.hours+'시간</b> (근무가능일 '+std.workable+'일 × 8h · 고시 제49조) · 1인 인정 = 기준시간 이상 근무(연차 유급휴가 포함)</div></div>';
-  return h;}
  function holidayStaffHtml(){
   var c=curDate(),y=c.getFullYear(),m=c.getMonth(),days=new Date(y,m+1,0).getDate(),list=[];
   for(var d=1;d<=days;d++){var key=k(y,m,d),hol=HOL[key];if(!hol)continue;if(new Date(y,m,d).getDay()===0)continue;var cd=computeDay(y,m,d);list.push((m+1)+'/'+d+'('+hol+') 근무 <b>'+cd.working.length+'</b>명');}
@@ -1842,7 +1822,7 @@
   h+='</ul></div>';return h;
  }
  function renderChecks(){var el=document.getElementById('checkPanel');if(!el)return;var c=curDate(),issues=runChecks(c.getFullYear(),c.getMonth()),dn=['일','월','화','수','목','금','토'];
-  if(!issues.length){el.innerHTML='<div class="card" style="border:1px solid var(--duty);background:var(--duty-bg);padding:11px 14px"><b style="color:var(--duty)">✅ 점검 결과 — 문제 없음</b> <span class="sub" style="margin:0">모든 날 최소 인원·맞이·차량 정상이에요.</span></div>'+staffLawHtml()+holidayStaffHtml()+holidayPayHtml()+noOverlapHtml();return;}
+  if(!issues.length){el.innerHTML='<div class="card" style="border:1px solid var(--duty);background:var(--duty-bg);padding:11px 14px"><b style="color:var(--duty)">✅ 점검 결과 — 문제 없음</b> <span class="sub" style="margin:0">모든 날 최소 인원·맞이·차량 정상이에요.</span></div>'+holidayStaffHtml()+holidayPayHtml()+noOverlapHtml();return;}
   var hasShort=issues.some(function(x){return x.cat==='minteam'||x.cat==='greet';});
   var h='<div class="card" style="border:1px solid var(--danger);padding:12px 14px"><div style="font-weight:600;color:var(--danger);display:flex;align-items:center;gap:7px;margin-bottom:9px">🔎 점검 결과 <span class="badge-need">조치 필요 '+issues.length+'건</span></div>';
   if(hasShort)h+='<div class="sub" style="margin:0 0 10px;padding:8px 10px;border-radius:8px;background:var(--info-bg);border:1px solid var(--info);line-height:1.6">⚖️ <b>직원 법정 휴무를 우선</b>해 휴무는 그대로 두고, 최소 인원이 못 채워진 날만 아래에 알려드려요. 이대로 <b>수용</b>하셔도 되고, 기관 운영상 근무가 꼭 필요한 날은 항목을 눌러 <b>급여보상(휴일근로수당) 근무</b> 또는 <b>대체휴무</b>로 직접 추가하세요.</div>';
@@ -1855,7 +1835,7 @@
    h+='<div style="margin:12px 0 5px;font-weight:700;font-size:13.5px;color:'+gsev+'">'+grp.icon+' '+grp.name+' <span style="font-weight:600;color:var(--tx3)">('+items.length+'건'+daylist+')</span></div>';
    items.forEach(function(is){h+=chkItem(is);});});
   issues.filter(function(x){return !known[x.cat];}).forEach(function(is){h+=chkItem(is);});
-  h+='</div>';h+=staffLawHtml();h+=holidayStaffHtml();h+=holidayPayHtml();h+=noOverlapHtml();el.innerHTML=h;
+  h+='</div>';h+=holidayStaffHtml();h+=holidayPayHtml();h+=noOverlapHtml();el.innerHTML=h;
   el.querySelectorAll('.accbar').forEach(function(b){b.onclick=function(){b.parentElement.classList.toggle('open');};});
   el.querySelectorAll('[data-fix]').forEach(function(b){b.onclick=function(e){e.stopPropagation();var a=b.getAttribute('data-fix');if(a==='pay'){refreshReqUI();openModal('payModal');}else if(a==='req')showPage(3);else if(a==='car')showPage(4);else if(a==='cal')switchView5('rest');};});
   el.querySelectorAll('[data-fo]').forEach(function(b){b.onclick=function(e){e.stopPropagation();var fl=b.getAttribute('data-fl');openFix(b.getAttribute('data-fo'),decodeURIComponent(b.getAttribute('data-fn')),b.getAttribute('data-fk'),b.getAttribute('data-ft'),+b.getAttribute('data-fd'),fl?decodeURIComponent(fl):null);};});
@@ -2254,7 +2234,6 @@
  $('#minHaeng').onchange=e=>{S.minTeam['행정팀']=+e.target.value||0;save();flagRegen();renderCalendar();};
  $('#minDolbom').onchange=e=>{S.minTeam['돌봄요양팀']=+e.target.value||0;save();flagRegen();renderCalendar();};
  $('#minGanho').onchange=e=>{S.minTeam['간호요양팀']=+e.target.value||0;save();flagRegen();renderCalendar();};
- (function(){var au=document.getElementById('avgUsers');if(au)au.onchange=function(e){S.avgUsers=+e.target.value||0;var need=Math.ceil(S.avgUsers/7);if(need>0){if(!S.minTeam)S.minTeam={};S.minTeam['돌봄요양팀']=need;var md=document.getElementById('minDolbom');if(md)md.value=need;}avgUsersHintUpdate();save();flagRegen();renderCalendar();if(typeof renderChecks==='function')renderChecks();};})();
  $('#minHaengSat').onchange=e=>{S.minTeamSat['행정팀']=+e.target.value||0;save();flagRegen();renderCalendar();};
  $('#minDolbomSat').onchange=e=>{S.minTeamSat['돌봄요양팀']=+e.target.value||0;save();flagRegen();renderCalendar();};
  $('#minGanhoSat').onchange=e=>{S.minTeamSat['간호요양팀']=+e.target.value||0;save();flagRegen();renderCalendar();};
